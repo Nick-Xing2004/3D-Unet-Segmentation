@@ -4,7 +4,7 @@ import torch
 
 class UNet3D(nn.Module):
     #model intialization
-    def __init__(self, in_channels=1, out_channels=1, init_features=32):
+    def __init__(self, in_channels=1, out_channels=5, init_features=32):
         super(UNet3D, self).__init__()
         features = init_features
         
@@ -90,21 +90,7 @@ class UNet3D(nn.Module):
         )
     
 
-        
-
-        
-
-
-
-        
-
-
-        
-
-
-
-
-
-
-
-
+#Function to create the model
+def initialize_Unet3D(device, in_channels=1, out_channels=5, init_features=32):
+    model = UNet3D(in_channels, out_channels, init_features)
+    return model.to(device) #used to move the model to the specified device
