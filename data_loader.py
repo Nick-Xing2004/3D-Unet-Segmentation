@@ -4,13 +4,29 @@ import torch
 from torch.utils.data import Dataset, DataLoader, random_split
 import nibabel as nib
 
-# class niftiDataset(Dataset):
-#     """
-#     A PyTorch Dataset for loading NIfTI images, masks, and metadata.
+class HipDataset(Dataset):
+    def _init_(self, root_dir):
+        self.root_dir=root_dir
+        self.sample_dirs = [d for d in os.listdir(root_dir) if os.path.isdir(os.path.join(root_dir, d))]
+
+    def _len_(self):
+        return len(self.sample_dirs)
     
-#     Args:
+    #data loader loading
+    def _getitem_(self, idx):
+        sample_dir = os.path.join(self.root_dir, self.sample_dirs[idx])    #sample dir path generation
 
+        #sample 3d image loading
+        image_path = os.path.join(sample_dir, f"{self.sample_dirs[idx]}.nii.gz")
+        image = nib.load(image_path).get_fdata() 
+        #sample mask loading
+        mask_path = os.path.join(sample_dir, f"{self.sample_dirs[idx]}_bone_mask-1.nii.gz")
+        mask = nib.load(mask_path).get_fdata()
 
+        #convert to tensors
+        image_tensor = torch.from_numpy(image).float().unsqueeze(0) # add channel dimension    #[1, D, H, W]
+        mask_tensor = torch.from_numpy(mask).float().unsqueeze(0) # add channel dimension    #[1, D, H, W]
+        return image_tensor, mask_tensor
 
 def dataloader(Args):
     """
@@ -22,10 +38,11 @@ def dataloader(Args):
     Returns:
         DataLoader: A PyTorch DataLoader for the dataset.
     """
-    dataset = Dataset(Args)
+    root_dir = "/banana/yehyun/2025.03.18 Hip CT Dataset (CTPEL)/2_CTPEL_nii"
+    dataset = HipDataset(root_dir)
 
     #train & validation split
-    train_size = int(len(dataset) * Args.train_ratio)
+    train_size = int(len(dataset) * 0.8)  # 80% for training
     val_size = len(dataset) - train_size
     train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
 
