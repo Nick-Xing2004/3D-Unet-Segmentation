@@ -4,7 +4,7 @@ import torch
 
 class UNet3D(nn.Module):
     #model intialization
-    def __init__(self, in_channels=1, out_channels=5, init_features=32):
+    def __init__(self, in_channels=1, out_channels=6, init_features=32):
         super(UNet3D, self).__init__()
         features = init_features
         

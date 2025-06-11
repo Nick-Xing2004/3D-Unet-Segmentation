@@ -44,7 +44,9 @@ def dataloader(Args):
     #train & validation split
     train_size = int(len(dataset) * 0.8)  # 80% for training
     val_size = len(dataset) - train_size
-    train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
+    generator = torch.Generator().manual_seed(Args.seed)
+
+    train_dataset, val_dataset = random_split(dataset, [train_size, val_size], generator=generator) # random split with seed for reproducibility
 
     train_loader = DataLoader(train_dataset, batch_size=Args.batch_size, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=Args.batch_size, shuffle=False)
