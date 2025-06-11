@@ -5,7 +5,7 @@ from torch.utils.data import Dataset, DataLoader, random_split
 import nibabel as nib
 
 class HipDataset(Dataset):
-    def _init_(self, root_dir):
+    def __init__(self, root_dir):
         self.root_dir=root_dir
         self.sample_dirs = [d for d in os.listdir(root_dir) if os.path.isdir(os.path.join(root_dir, d))]
 
@@ -13,7 +13,7 @@ class HipDataset(Dataset):
         return len(self.sample_dirs)
     
     #data loader loading
-    def _getitem_(self, idx):
+    def __getitem__(self, idx):
         sample_dir = os.path.join(self.root_dir, self.sample_dirs[idx])    #sample dir path generation
 
         #sample 3d image loading
