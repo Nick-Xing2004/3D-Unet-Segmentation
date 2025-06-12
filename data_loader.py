@@ -42,7 +42,7 @@ class HipDataset(Dataset):
             mask_tensor = torch.cat((mask_tensor, padding), dim=1)
         
         #image and mask tensor cropping
-        target_depth = 512      #desired depth for cropping or padding
+        target_depth = 512  #desired depth for cropping or padding
         image_tensor = crop_or_pad_depth(image_tensor, target_depth)
         mask_tensor = crop_or_pad_depth(mask_tensor, target_depth)
 
