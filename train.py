@@ -100,11 +100,12 @@ def calculate_dice_score(pred, mask, smooth=1e-8):
     pred = torch.argmax(pred, dim=1)    #[B, D, H, W]   returning the index of the maximum value along the channel dimension
     dice_scores = []
 
-    for cls in range(1, 5):    #skip the background class
+    for cls in range(1, 6):    #skip the background class
         pred_cls = (pred == cls).float()    #[B, D, H, W]
         mask_cls = (mask == cls).float()      #[B, D, H, W]
         intersection = (pred_cls * mask_cls).sum()     #scalar value
         union = pred_cls.sum() + mask_cls.sum()    #scalar value
         dice_score = (2. * intersection + smooth) / (union + smooth)     #scalar value
-        dice_scores.append(dice_score.item())
-        return torch.mean(torch.stack(dice_scores))  #mean dice for the current batch of the validation set 
+        dice_scores.append(dice_score)
+
+    return torch.mean(torch.stack(dice_scores))  #mean dice for the current batch of the validation set 
