@@ -91,6 +91,6 @@ class UNet3D(nn.Module):
     
 
 #Function to create the model
-def initialize_Unet3D(device, in_channels=1, out_channels=5, init_features=32):
+def initialize_Unet3D(device, in_channels=1, out_channels=6, init_features=32):
     model = UNet3D(in_channels, out_channels, init_features)
     return model.to(device) #used to move the model to the specified device

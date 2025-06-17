@@ -43,6 +43,9 @@ def train_model(args, model, optimizer, train_loader, loss_fn, device):
     total_loss = 0.0
 
     for batch_idx, (image, mask) in enumerate(train_loader):
+        #input shape printing
+        print(f'input shape before training: {image.shape}')
+
         image = image.to(device)
         mask = mask.to(device)
 
