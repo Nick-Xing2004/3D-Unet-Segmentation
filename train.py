@@ -35,6 +35,8 @@ def train(model, args, device):
         history['train_loss'].append(train_loss)
         history['val_loss'].append(avg_val_loss)
         history['mean_dice'].append(avg_dice_score)
+    
+    print(history)
 
 
 #epoch paraemeter training
@@ -44,7 +46,7 @@ def train_model(args, model, optimizer, train_loader, loss_fn, device):
 
     for batch_idx, (image, mask) in enumerate(train_loader):
         #input shape printing
-        print(f'input shape before training: {image.shape}')
+        # print(f'input shape before training: {image.shape}')
 
         image = image.to(device)
         mask = mask.to(device)
@@ -53,7 +55,7 @@ def train_model(args, model, optimizer, train_loader, loss_fn, device):
         #forward propagation
         outputs = model(image)
         #loss calulation
-        loss = loss_fn(outputs, mask) 
+        loss = loss_fn(outputs, mask.squeeze(1).long()) 
         #backward propgation and optimization
         loss.backward()
         optimizer.step()
@@ -80,7 +82,7 @@ def validate_model(args, model, val_loader, epoh, device):
             #forward propagation on the validation batch
             outputs = model(image)
             #loss calculation 
-            loss = nn.CrossEntropyLoss()(outputs, mask)
+            loss = nn.CrossEntropyLoss()(outputs, mask.squeeze(1).long())
             total_loss += loss.item()
             dice_score_batch = calculate_dice_score(outputs, mask)
             total_dice_score += dice_score_batch

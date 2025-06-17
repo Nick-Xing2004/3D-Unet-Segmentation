@@ -3,7 +3,7 @@ import torch.nn.functional as F
 import torch
 
 class UNet3D(nn.Module):
-    #model intialization
+    # model intialization
     def __init__(self, in_channels=1, out_channels=6, init_features=32):
         super(UNet3D, self).__init__()
         features = init_features
@@ -52,8 +52,9 @@ class UNet3D(nn.Module):
         bottleneck = self.bottleneck(self.pool4(enc4))
 
         #decoding and up-sampling
-        dec4 = self.upconv4(bottleneck) #recovering the spacial dimensions
-        dec4 = torch.cat([dec4, enc4], dim=1)    #skip connection
+        dec4 = self.upconv4(bottleneck) #recovering the spacial dimensions 
+        # print(f'shape of dec4: {dec4.shape}; shape of enc4: {enc4.shape}')
+        dec4 = torch.cat([dec4, enc4], dim=1)    #skip connection   
         dec4 = self.decoder4(dec4)       #features * 8
 
         dec3 = self.upconv3(dec4)
@@ -89,6 +90,12 @@ class UNet3D(nn.Module):
             nn.ReLU(inplace=True)
         )
     
+    # helper function for cropping the output of the encoder, to fit and unify the sizes of encoder output & decoder output 
+    # for skip connection
+    # def center_crop(self, encoder_output, decoder_output):
+    #     _, _, D, H, W = decoder_output.shape
+    #     d, h, w = encoder_output.shape[2:]
+    #     return encoder_output[:, :, ]
 
 #Function to create the model
 def initialize_Unet3D(device, in_channels=1, out_channels=6, init_features=32):

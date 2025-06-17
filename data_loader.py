@@ -46,6 +46,12 @@ class HipDataset(Dataset):
         image_tensor = crop_or_pad_depth(image_tensor, target_depth)
         mask_tensor = crop_or_pad_depth(mask_tensor, target_depth)
 
+        #downsampling process before training
+        image_tensor = F.interpolate(image_tensor.unsqueeze(0), size=(128, 256, 256),
+                                     mode='trilinear', align_corners=False).squeeze(0)
+        mask_tensor = F.interpolate(mask_tensor.unsqueeze(0), size=(128, 256, 256),
+                                    mode='nearest').squeeze(0)
+        
         return image_tensor, mask_tensor
 
 

@@ -12,7 +12,7 @@ def main(args):
     Args:
         args (argparse.Namespace): Parsed command-line arguments.
     """
-    device = "cuda:1" if torch.cuda.is_available() else "cpu"
+    device = "cuda:3" if torch.cuda.is_available() else "cpu"
     print(f"Using device: {device}")
     
     #model intialization
@@ -38,7 +38,7 @@ if __name__ == "__main__":
         help="Batch size for training"
     )
     parser.add_argument(
-        "--epochs", type=int, default=350,
+        "--epochs", type=int, default=100,
         help="Number of epochs for training"
     )
     parser.add_argument(
