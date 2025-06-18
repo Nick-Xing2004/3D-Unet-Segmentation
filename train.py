@@ -41,7 +41,7 @@ def train(model, args, device):
         history['epoch'].append(epoch + 1)
         history['train_loss'].append(train_loss)
         history['val_loss'].append(avg_val_loss)
-        history['mean_dice'].append(avg_dice_score)
+        history['mean_dice'].append(avg_dice_score.item())
     
     print(history)
 
