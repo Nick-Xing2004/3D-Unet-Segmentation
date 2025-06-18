@@ -6,6 +6,7 @@ from data_loader import dataloader
 #model training process
 def train(model, args, device):
     optimizer = optim.Adam(model.parameters(), lr=1e-4)
+    best_val_loss = float('inf')
     
     history = {
         'epoch': [],
@@ -29,6 +30,12 @@ def train(model, args, device):
             f"Validation set loss: {avg_val_loss:.4f} | "
             f"Mean dice score per batch for the validation set: {avg_dice_score:.4f}"
         )
+
+        #model parameters saving with avg_val_loss as the criterion
+        if avg_val_loss < best_val_loss:
+            best_val_loss = avg_val_loss
+            torch.save(model.state_dict(), "best_Unet_3D_Yuyang.pth")
+            print(f"Saved new best model✅! At epoch {epoch+1} with avg_val_loss: {avg_val_loss:.4f}")
         
         #recording the training history
         history['epoch'].append(epoch + 1)
