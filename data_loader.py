@@ -92,7 +92,7 @@ def crop_or_pad_depth(tensor, target_depth):
     
     elif D > target_depth:
         start = (D - target_depth) // 2
-        return tensor[:, -target_depth:, :, :]        #cropping from the end to top direction
+        return tensor[:, :target_depth, :, :]        #cropping from the bottom up!
     
     else:      # pad the tensor to match the target depth     currently no sample cases apply this condition
         pad_total = target_depth - D
