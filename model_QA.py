@@ -14,7 +14,7 @@ def model_performance_QA():
         
     #model intialization & param loading
     model = initialize_Unet3D(device)
-    model.load_state_dict(torch.load("best_Unet_3D_Yuyang_2nd_version.pth"))
+    model.load_state_dict(torch.load("best_Unet_3D_Yuyang_3th_version.pth"))
     model.eval()
 
     save_dir = "/home/yxing/predictions_QA"           #the dir that all pred_nii will be stored
@@ -26,6 +26,7 @@ def model_performance_QA():
     for QA_dir in sample_dirs:
         dir_path = os.path.join(root_dir, QA_dir)
         image_path = os.path.join(dir_path, f"{QA_dir}.nii.gz")
+        gt_mask_path = os.path.join(dir_path, f"{QA_dir}_bone_mask-1.nii.gz")
         image_tensor, affine, header = load_nifti_as_tensor(image_path)
         image_tensor = image_tensor.to(device).unsqueeze(0)   #[1, 1, D, H, W]  --->  [1, 1, 160, 256, 256]
 
@@ -39,7 +40,7 @@ def model_performance_QA():
         
         #save as nifti
         output_path = os.path.join(save_dir, f"{QA_dir}_pred.nii.gz")
-        save_prediction(output_path, affine, header, pred_up)
+        save_prediction(output_path, affine, header, pred_up, gt_mask_path)
         print(f"Saved prediction for {QA_dir}✅! -> {output_path}")
         
             
@@ -78,11 +79,13 @@ def crop_or_pad_depth(tensor, target_depth):
 
 
 #helper function for prediction file saving
-def save_prediction(output_path, affine, header, pred_up):
+def save_prediction(output_path, affine, header, pred_up, gt_mask_path):
+    gt_mask_nib = nib.load(gt_mask_path)
+
     pred_np = pred_up.squeeze().cpu().numpy().astype(np.uint8)
     restored_np = pred_np.transpose(1, 2, 0)
     print(f"pred_np's shape: {restored_np.shape}")      # Check the shape of the restored mask to double check
-    nib.save(nib.Nifti1Image(restored_np, affine=affine), output_path)
+    nib.save(nib.Nifti1Image(restored_np, affine=gt_mask_nib.affine), output_path)
 
 
 
