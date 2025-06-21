@@ -21,7 +21,10 @@ def train(model, args, device):
     for epoch in range(args.epochs):
         print(f'Epoch {epoch + 1}/{args.epochs}')
         train_loader, val_loader = dataloader(args)
-        loss_fn = nn.CrossEntropyLoss()
+
+        #adjustint weights for each class within the cost function
+        class_weights = torch.tensor([0.1, 1.5, 1.5, 1.5, 1.5, 1.5], dtype=torch.float32).to(device)
+        loss_fn = nn.CrossEntropyLoss(weight=class_weights)
 
         #model training & evaluation
         train_loss = train_model(args, model, optimizer, train_loader, loss_fn, device)
