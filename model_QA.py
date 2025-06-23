@@ -14,7 +14,7 @@ def model_performance_QA():
         
     #model intialization & param loading
     model = initialize_Unet3D(device)
-    model.load_state_dict(torch.load("best_Unet_3D_Yuyang_3th_version.pth"))
+    model.load_state_dict(torch.load("best_Unet_3D_Yuyang_4th_version.pth"))
     model.eval()
 
     save_dir = "/home/yxing/predictions_QA"           #the dir that all pred_nii will be stored
@@ -39,7 +39,7 @@ def model_performance_QA():
         pred_up = F.interpolate(pred.float(), size=(312, 256, 256), mode='nearest')  #[1, 1, 312, 256, 256]   -----> [1, 312, 256, 256]   
         
         #save as nifti
-        output_path = os.path.join(save_dir, f"{QA_dir}_pred.nii.gz")
+        output_path = os.path.join(save_dir, f"{QA_dir}_pred_2.nii.gz")
         save_prediction(output_path, affine, header, pred_up, gt_mask_path)
         print(f"Saved prediction for {QA_dir}✅! -> {output_path}")
         

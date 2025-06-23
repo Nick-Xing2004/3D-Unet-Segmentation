@@ -23,7 +23,7 @@ def train(model, args, device):
         train_loader, val_loader = dataloader(args)
 
         #adjustint weights for each class within the cost function
-        class_weights = torch.tensor([0.1, 1.5, 1.5, 1.5, 1.5, 1.5], dtype=torch.float32).to(device)
+        class_weights = torch.tensor([0.1, 12, 12, 12, 12, 12], dtype=torch.float32).to(device)
         loss_fn = nn.CrossEntropyLoss(weight=class_weights)
 
         #model training & evaluation
@@ -39,7 +39,7 @@ def train(model, args, device):
         #model parameters saving with avg_val_loss as the criterion
         if avg_val_loss < best_val_loss:
             best_val_loss = avg_val_loss
-            torch.save(model.state_dict(), "best_Unet_3D_Yuyang_3th_version.pth")
+            torch.save(model.state_dict(), "best_Unet_3D_Yuyang_5th_version.pth")
             print(f"Saved new best model✅! At epoch {epoch+1} with avg_val_loss: {avg_val_loss:.4f}")
         
         #recording the training history
