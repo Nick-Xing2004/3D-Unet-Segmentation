@@ -70,7 +70,7 @@ def train(model, args, device):
         ]
         rows.append(row)
 
-    csv_path = "/home/yxing/training_data/Unet_training_logs.csv"     
+    csv_path = "/home/yxing/training_data/Unet_training_logs_2.csv"     
     with open(csv_path, 'w', newline='') as f:
         writer = csv.writer(f)
         writer.writerow(header)
