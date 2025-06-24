@@ -28,7 +28,7 @@ def train(model, args, device):
 
         #model training & evaluation
         train_loss = train_model(args, model, optimizer, train_loader, loss_fn, device)
-        avg_val_loss, avg_dice_scores, mean_dice_score_across_classes = validate_model(args, model,  val_loader, epoch, device)
+        avg_val_loss, avg_dice_scores, mean_dice_score_across_classes = validate_model(args, model, val_loader, epoch, device)
 
         print(
             f"Train loss: {train_loss:.4f} | "
@@ -39,7 +39,7 @@ def train(model, args, device):
         #model parameters saving with avg_val_loss as the criterion
         if avg_val_loss < best_val_loss:
             best_val_loss = avg_val_loss
-            torch.save(model.state_dict(), "best_Unet_3D_Yuyang_5th_version.pth")
+            torch.save(model.state_dict(), "debugging_1.pth")
             print(f"Saved new best model✅! At epoch {epoch+1} with avg_val_loss: {avg_val_loss:.4f}")
         
         #recording the training history
@@ -70,7 +70,7 @@ def train(model, args, device):
         ]
         rows.append(row)
 
-    csv_path = "/home/yxing/training_data/Unet_training_logs_2.csv"     
+    csv_path = "/home/yxing/training_data/Unet_training_logs_3.csv"     
     with open(csv_path, 'w', newline='') as f:
         writer = csv.writer(f)
         writer.writerow(header)
@@ -126,7 +126,10 @@ def validate_model(args, model, val_loader, epoh, device):
             #forward propagation on the validation batch
             outputs = model(image)
             #loss calculation 
-            loss = nn.CrossEntropyLoss()(outputs, mask.squeeze(1).long())
+            class_weights = torch.tensor([0.1, 12, 12, 12, 12, 12], dtype=torch.float32).to(device)
+            loss_fn = nn.CrossEntropyLoss(weight=class_weights)
+
+            loss = loss_fn(outputs, mask.squeeze(1).long())
             total_loss += loss.item()
             batch_dices = calculate_dice_score(outputs, mask)
             dice_sums += batch_dices

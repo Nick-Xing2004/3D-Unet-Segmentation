@@ -65,17 +65,22 @@ def dataloader(Args):
     Returns:
         DataLoader: A PyTorch DataLoader for the dataset.
     """
-    root_dir = "/banana/yehyun/2025.03.18 Hip CT Dataset (CTPEL)/2_CTPEL_nii"
+    root_dir = "/banana/yuyang/3D_Unet_QA_2"
     dataset = HipDataset(root_dir)
 
     #train & validation split
-    train_size = int(len(dataset) * 0.8)  # 80% for training
-    val_size = len(dataset) - train_size
-    generator = torch.Generator().manual_seed(Args.seed)
+    # train_size = int(len(dataset) * 0.8)  # 80% for training
+    # val_size = len(dataset) - train_size
+    # generator = torch.Generator().manual_seed(Args.seed)
 
-    train_dataset, val_dataset = random_split(dataset, [train_size, val_size], generator=generator) # random split with seed for reproducibility
+    # train_dataset, val_dataset = random_split(dataset, [train_size, val_size], generator=generator) # random split with seed for reproducibility
 
-    train_loader = DataLoader(train_dataset, batch_size=Args.batch_size, shuffle=True)
+    
+    #code for debugging: (train_set, val_set preparation)
+    train_dataset = torch.utils.data.Subset(dataset, [0])
+    val_dataset = torch.utils.data.Subset(dataset, [0])
+
+    train_loader = DataLoader(train_dataset, batch_size=Args.batch_size, shuffle=False)
     val_loader = DataLoader(val_dataset, batch_size=Args.batch_size, shuffle=False)
     
     print(f'train dataset size: {len(train_dataset)}')

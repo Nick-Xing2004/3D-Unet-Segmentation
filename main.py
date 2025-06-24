@@ -34,11 +34,11 @@ if __name__ == "__main__":
     
     # Training parameters
     parser.add_argument(
-        "--batch_size", type=int, default=2,
+        "--batch_size", type=int, default=1,
         help="Batch size for training"
     )
     parser.add_argument(
-        "--epochs", type=int, default=100,
+        "--epochs", type=int, default=200,
         help="Number of epochs for training"
     )
     parser.add_argument(
