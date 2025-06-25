@@ -4,6 +4,11 @@ import torch.optim as optim
 from data_loader import dataloader
 import pandas as pd
 import csv
+#visualization tool used for logging training process
+import wandb
+
+#intialize wandb project
+wandb.init(project='3D-Unet-Segmentation-Yuyang')
 
 #model training process
 def train(model, args, device):
@@ -35,6 +40,19 @@ def train(model, args, device):
             f"Validation set loss: {avg_val_loss:.4f} | "
             f"Mean dice score per batch for the validation set: {mean_dice_score_across_classes:.4f}"
         )
+
+        #log metrics to wandb
+        wandb.log({
+            "epoch": epoch + 1,
+            "train_loss": train_loss,
+            "val_loss": avg_val_loss,
+            "mean_dice": mean_dice_score_across_classes,
+            "dice 1": avg_dice_scores[0],
+            "dice 2": avg_dice_scores[1],
+            "dice 3": avg_dice_scores[2],
+            "dice 4": avg_dice_scores[3],
+            "dice 5": avg_dice_scores[4]
+        })
 
         #model parameters saving with avg_val_loss as the criterion
         if avg_val_loss < best_val_loss:
