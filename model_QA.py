@@ -33,10 +33,10 @@ def model_performance_QA():
         #prediction process
         with torch.no_grad():
             outputs = model(image_tensor)   #[1, C, D, H, W]   ---->   [1, 6, 160, 256, 256]
-            pred = torch.argmax(outputs, dim=1, keepdim=True)   #[1, C, D, H, W]    ----->  [1(B), 1, D, H, W]  ----> [1, 1, 160, 256, 256]
+            pred = torch.argmax(outputs, dim=1, keepdim=True)   #[1, C, D, H, W]    ----->  [1(B), 1, D, H, W]  ---->  [1, 1, 160, 256, 256]
 
         #upsampling after argMax:
-        pred_up = F.interpolate(pred.float(), size=(312, 256, 256), mode='nearest')  #[1, 1, 312, 256, 256]   -----> [1, 312, 256, 256]   
+        pred_up = F.interpolate(pred.float(), size=(312, 512, 512), mode='nearest')  #[1, 1, 160, 256, 256]   ----->  [1, 1, 312, 512, 512]   
         
         #save as nifti
         output_path = os.path.join(save_dir, f"{QA_dir}_pred_debugging.nii.gz")
@@ -81,11 +81,12 @@ def crop_or_pad_depth(tensor, target_depth):
 #helper function for prediction file saving
 def save_prediction(output_path, affine, header, pred_up, gt_mask_path):
     gt_mask_nib = nib.load(gt_mask_path)
+    print(f"ground truth mask's shape: {gt_mask_nib.get_fdata().shape}")     # check the original mask's shape to verify
 
     pred_np = pred_up.squeeze().cpu().numpy().astype(np.uint8)
     restored_np = pred_np.transpose(1, 2, 0)
-    print(f"pred_np's shape: {restored_np.shape}")      # Check the shape of the restored mask to double check
-    nib.save(nib.Nifti1Image(restored_np, affine=gt_mask_nib.affine), output_path)
+    print(f"pred_np's shape: {restored_np.shape}")      # check the shape of the restored mask to double check
+    nib.save(nib.Nifti1Image(restored_np, affine=gt_mask_nib.affine, header=gt_mask_nib.header), output_path)
 
 
 
