@@ -14,13 +14,13 @@ def model_performance_QA():
         
     #model intialization & param loading
     model = initialize_Unet3D(device)
-    model.load_state_dict(torch.load("best_Unet_3D_Yuyang_4th_version.pth"))
+    model.load_state_dict(torch.load("debugging_3.pth"))
     model.eval()
 
     save_dir = "/home/yxing/predictions_QA"           #the dir that all pred_nii will be stored
     os.makedirs(save_dir, exist_ok=True)
 
-    root_dir = "/banana/yuyang/3D_Unet_QA"                #the dir containing QA samples
+    root_dir = "/banana/yuyang/3D_Unet_QA_2"                #the dir containing QA samples
     sample_dirs = [d for d in os.listdir(root_dir) if os.path.isdir(os.path.join(root_dir, d))]
 
     for QA_dir in sample_dirs:
@@ -39,7 +39,7 @@ def model_performance_QA():
         pred_up = F.interpolate(pred.float(), size=(312, 256, 256), mode='nearest')  #[1, 1, 312, 256, 256]   -----> [1, 312, 256, 256]   
         
         #save as nifti
-        output_path = os.path.join(save_dir, f"{QA_dir}_pred_2.nii.gz")
+        output_path = os.path.join(save_dir, f"{QA_dir}_pred_debugging.nii.gz")
         save_prediction(output_path, affine, header, pred_up, gt_mask_path)
         print(f"Saved prediction for {QA_dir}✅! -> {output_path}")
         
@@ -68,7 +68,7 @@ def crop_or_pad_depth(tensor, target_depth):
     
     elif D > target_depth:
         start = (D - target_depth) // 2
-        return tensor[:, -target_depth:, :, :]        #cropping from the end to top direction
+        return tensor[:, :target_depth, :, :]        #cropping from bottom up!
     
     else:      # pad the tensor to match the target depth     currently no sample cases apply this condition
         pad_total = target_depth - D
