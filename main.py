@@ -38,7 +38,7 @@ if __name__ == "__main__":
         help="Batch size for training"
     )
     parser.add_argument(
-        "--epochs", type=int, default=400,
+        "--epochs", type=int, default=200,
         help="Number of epochs for training"
     )
     parser.add_argument(

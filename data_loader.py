@@ -52,6 +52,7 @@ class HipDataset(Dataset):
         mask_tensor = F.interpolate(mask_tensor.unsqueeze(0), size=(160, 256, 256),
                                     mode='nearest').squeeze(0)
         
+        
         return image_tensor, mask_tensor
 
 
