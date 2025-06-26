@@ -34,7 +34,7 @@ if __name__ == "__main__":
     
     # Training parameters
     parser.add_argument(
-        "--batch_size", type=int, default=1,
+        "--batch_size", type=int, default=2,
         help="Batch size for training"
     )
     parser.add_argument(
