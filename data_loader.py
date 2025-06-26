@@ -4,11 +4,13 @@ import torch
 from torch.utils.data import Dataset, DataLoader, random_split
 import nibabel as nib
 import torch.nn.functional as F
+import torchio as tio
 
 class HipDataset(Dataset):
-    def __init__(self, root_dir):
+    def __init__(self, root_dir, transform=None):
         self.root_dir=root_dir
         self.sample_dirs = [d for d in os.listdir(root_dir) if os.path.isdir(os.path.join(root_dir, d))]
+        self.transform = transform       #transform augmentation function for training dataset
 
     def __len__(self):
         return len(self.sample_dirs)
@@ -52,6 +54,18 @@ class HipDataset(Dataset):
         mask_tensor = F.interpolate(mask_tensor.unsqueeze(0), size=(160, 256, 256),
                                     mode='nearest').squeeze(0)
         
+        #applying data augmentation
+        subject = tio.Subject(
+            image = tio.ScalarImage(tensor = image_tensor),
+            mask = tio.LabelMap(tensor = mask_tensor)
+        )
+
+        if self.transform:
+            subject = self.transform(subject)
+
+        image_tensor = subject.image.data
+        mask_tensor = subject.mask.data  
+        
         
         return image_tensor, mask_tensor
 
@@ -66,6 +80,15 @@ def dataloader(Args):
     Returns:
         DataLoader: A PyTorch DataLoader for the dataset.
     """
+    #data augmentation sequence designed for the training dataset
+    train_transform = tio.Compose([
+        tio.RandomFlip(axes=('LR'), p=0.5),
+        tio.RandomAffine(scales=(0.9, 1.1), degrees=10, translation=5, p=0.75),
+        tio.RandomNoise(mean=0, std=(0, 0.05), p=0.25),
+        tio.RandomBiasField(p=0.3),
+        tio.RandomElasticDeformation(p=0.2)
+    ])
+
     root_dir = "/banana/yuyang/2_CTPEL_nii"
     dataset = HipDataset(root_dir)
 
@@ -74,8 +97,12 @@ def dataloader(Args):
     val_size = len(dataset) - train_size
     generator = torch.Generator().manual_seed(Args.seed)
 
-    train_dataset, val_dataset = random_split(dataset, [train_size, val_size], generator=generator) # random split with seed for reproducibility
-
+    # train_dataset, val_dataset = random_split(dataset, [train_size, val_size], generator=generator) # random split with seed for reproducibility
+    train_indices, val_indices = random_split(range(len(dataset)), [train_size, val_size], generator=generator)
+    
+    #training and validation dataset formation with data augmentation prepared for the training dataset
+    train_dataset = torch.utils.data.Subset(HipDataset(root_dir, transform=train_transform), train_indices)
+    val_dataset = torch.utils.data.Subset(HipDataset(root_dir, transform=None), val_indices)
     
     # #code for debugging: (train_set, val_set preparation)
     # train_dataset = torch.utils.data.Subset(dataset, [0])
