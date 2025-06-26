@@ -67,8 +67,8 @@ class HipDataset(Dataset):
         image_tensor = subject.image.data
         mask_tensor = subject.mask.data
 
-        # adding positional encoding channels   
-        image_tensor = add_positonal_encoding(image_tensor)        #[7, D, H, W]
+        # # adding positional encoding channels   
+        # image_tensor = add_positonal_encoding(image_tensor)        #[7, D, H, W]
         
         return image_tensor, mask_tensor
 
