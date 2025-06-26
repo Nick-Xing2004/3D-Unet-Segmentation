@@ -16,7 +16,7 @@ def main(args):
     print(f"Using device: {device}")
     
     #model intialization
-    model = initialize_Unet3D(device)
+    model = initialize_Unet3D(device, in_channels=7)         #now in_channels = 7 (with the positional encodings)
 
     #model training entrance
     train(model, args, device)

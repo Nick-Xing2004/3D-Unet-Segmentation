@@ -5,6 +5,7 @@ from torch.utils.data import Dataset, DataLoader, random_split
 import nibabel as nib
 import torch.nn.functional as F
 import torchio as tio
+import numpy as np
 
 class HipDataset(Dataset):
     def __init__(self, root_dir, transform=None):
@@ -64,8 +65,10 @@ class HipDataset(Dataset):
             subject = self.transform(subject)
 
         image_tensor = subject.image.data
-        mask_tensor = subject.mask.data  
-        
+        mask_tensor = subject.mask.data
+
+        # adding positional encoding channels   
+        image_tensor = add_positonal_encoding(image_tensor)        #[7, D, H, W]
         
         return image_tensor, mask_tensor
 
@@ -82,11 +85,10 @@ def dataloader(Args):
     """
     #data augmentation sequence designed for the training dataset
     train_transform = tio.Compose([
-        tio.RandomFlip(axes=('LR'), p=0.5),
         tio.RandomAffine(scales=(0.9, 1.1), degrees=10, translation=5, p=0.75),
         tio.RandomNoise(mean=0, std=(0, 0.05), p=0.25),
-        tio.RandomBiasField(p=0.3),
-        tio.RandomElasticDeformation(p=0.2)
+        tio.RandomBiasField(p=0.3)
+        # tio.RandomElasticDeformation(p=0.2)
     ])
 
     root_dir = "/banana/yuyang/2_CTPEL_nii"
@@ -133,4 +135,32 @@ def crop_or_pad_depth(tensor, target_depth):
         pad_back = pad_total - pad_front
         pad_shape = (0, 0, 0, 0, pad_front, pad_back)
         return F.pad(tensor, pad_shape, mode='constant', value=0)
+
+
+# helper method to add positional encoding channels as inputs to the Unet input channels
+# returns the image tensor and the positional encodings
+def add_positonal_encoding(image_tensor):
+    _, D, H, W = image_tensor.shape
+
+    #create 3D coordinate grids
+    z = torch.linspace(0, 1, steps=D).view(D, 1, 1).expand(D, H, W)      # the z coordinates for each voxel of the input tensor [0 ~ 1]
+    y = torch.linspace(0, 1, steps=H).view(1, H, 1).expand(D, H, W)      # the y coordinates for each voxel of the input tensor [0 ~ 1]
+    x = torch.linspace(0, 1, steps=W).view(1, 1, W).expand(D, H, W)      # the x coordinates for each voxel of the input tensor [0 ~ 1]
+
+    #sin & cos of absolute coordinates of each voxel of the input tensor
+    pos_channels = [
+        torch.sin(2 * np.pi * x), torch.cos(2 * np.pi * x),             # sin & cos encoding of x coordinates
+        torch.sin(2 * np.pi * y), torch.cos(2 * np.pi * y),             # sin & cos encoding of y coordinates
+        torch.sin(2 * np.pi * z), torch.cos(2 * np.pi * z)              # sin & cos encoding of z coordinates
+    ]                                 #6 * [D, H, W]
+
+    pos_encoding = torch.stack(pos_channels, dim=0)       # -------> [6, D, H, W]
+
+    return torch.cat([image_tensor, pos_encoding], dim=0)             # -------------> [7, D, H, W]
+
+
+
+
+
+
         
