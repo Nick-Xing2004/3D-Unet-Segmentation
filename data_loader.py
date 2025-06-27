@@ -1,7 +1,7 @@
 ##data_loader
 import os
 import torch
-from torch.utils.data import Dataset, DataLoader, random_split
+from torch.utils.data import Dataset, random_split
 import nibabel as nib
 import torch.nn.functional as F
 import torchio as tio
@@ -16,7 +16,7 @@ class HipDataset(Dataset):
     def __len__(self):
         return len(self.sample_dirs)
     
-    #data loader loading
+    # data loader loading
     def __getitem__(self, idx):
         sample_dir = os.path.join(self.root_dir, self.sample_dirs[idx])    #sample dir path generation
 
@@ -64,13 +64,13 @@ class HipDataset(Dataset):
         if self.transform:
             subject = self.transform(subject)
 
-        image_tensor = subject.image.data
-        mask_tensor = subject.mask.data
+        # image_tensor = subject.image.data
+        # mask_tensor = subject.mask.data
 
         # # adding positional encoding channels   
         # image_tensor = add_positonal_encoding(image_tensor)        #[7, D, H, W]
         
-        return image_tensor, mask_tensor
+        return subject
 
 
 def dataloader(Args):
@@ -102,24 +102,30 @@ def dataloader(Args):
     # train_dataset, val_dataset = random_split(dataset, [train_size, val_size], generator=generator) # random split with seed for reproducibility
     train_indices, val_indices = random_split(range(len(dataset)), [train_size, val_size], generator=generator)
     
-    #training and validation dataset formation with data augmentation prepared for the training dataset
-    train_dataset = torch.utils.data.Subset(HipDataset(root_dir, transform=train_transform), train_indices)
-    val_dataset = torch.utils.data.Subset(HipDataset(root_dir, transform=None), val_indices)
+    # training and validation dataset formation with data augmentation prepared for the training dataset
+    # train_dataset = torch.utils.data.Subset(HipDataset(root_dir, transform=train_transform), train_indices)
+    # val_dataset = torch.utils.data.Subset(HipDataset(root_dir, transform=None), val_indices)
+    train_subjects = [dataset[i] for i in train_indices]
+    val_subjects = [dataset[i] for i in val_indices]
+
+    train_dataset = tio.SubjectsDataset(train_subjects, transform=train_transform)
+    val_dataset = tio.SubjectsDataset(val_subjects)
     
     # #code for debugging: (train_set, val_set preparation)
     # train_dataset = torch.utils.data.Subset(dataset, [0])
     # val_dataset = torch.utils.data.Subset(dataset, [0])
-
-    train_loader = DataLoader(train_dataset, batch_size=Args.batch_size, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=Args.batch_size, shuffle=False)
     
+    # use TorchIO Subject loader
+    train_loader = tio.SubjectsLoader(train_dataset, batch_size=Args.batch_size, shuffle=True)
+    val_loader = tio.SubjectsLoader(val_dataset, batch_size=Args.batch_size, shuffle=False)
+
     print(f'train dataset size: {len(train_dataset)}')
     print(f'validation dataset size: {len(val_dataset)}')
     
     return train_loader, val_loader
 
 
-#helper function for cropping sample images and masks to the same size
+# helper function for cropping sample images and masks to the same size
 def crop_or_pad_depth(tensor, target_depth):
     _, D, H, W = tensor.shape
     if D == target_depth:
@@ -137,7 +143,7 @@ def crop_or_pad_depth(tensor, target_depth):
         return F.pad(tensor, pad_shape, mode='constant', value=0)
 
 
-# helper method to add positional encoding channels as inputs to the Unet input channels
+# helper function to add positional encoding channels as inputs to the Unet input channels
 # returns the image tensor and the positional encodings
 def add_positonal_encoding(image_tensor):
     _, D, H, W = image_tensor.shape
@@ -158,6 +164,19 @@ def add_positonal_encoding(image_tensor):
 
     return torch.cat([image_tensor, pos_encoding], dim=0)             # -------------> [7, D, H, W]
 
+
+# # helper function for converting to TorchIO subject lists
+# def build_subjects_list(dataset):
+#     subjects = []
+#     for i in range(len(dataset)):
+#         image_tensor, mask_tensor = dataset[i]
+#         subject = tio.Subject(
+#             image = tio.ScalarImage(tensor = image_tensor),
+#             mask = tio.LabelMap(tensor = mask_tensor)
+#         )
+#         subjects.append(subject)
+
+#     return subjects
 
 
 

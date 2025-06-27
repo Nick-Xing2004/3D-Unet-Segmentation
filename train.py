@@ -6,6 +6,8 @@ import pandas as pd
 import csv
 #visualization tool used for logging training process
 import wandb
+import torchio as tio
+
 
 #intialize wandb project
 wandb.init(project='3D-Unet-Segmentation-Yuyang')
@@ -102,12 +104,11 @@ def train_model(args, model, optimizer, train_loader, loss_fn, device):
     model.train()
     total_loss = 0.0
 
-    for batch_idx, (image, mask) in enumerate(train_loader):
+    for idx, batch in enumerate(train_loader):
         #input shape printing
         # print(f'input shape before training: {image.shape}')
-
-        image = image.to(device)
-        mask = mask.to(device)
+        image = batch['image'][tio.DATA].to(device)
+        mask = batch['mask'][tio.DATA].to(device)
 
         optimizer.zero_grad()
         #forward propagation
@@ -137,9 +138,9 @@ def validate_model(args, model, val_loader, epoh, device):
     dice_sums = torch.zeros(5, device=device)     #5 foreground classes (1-5)
 
     with torch.no_grad():  # no need to calculate gradients during validation
-        for batch_idx, (image, mask) in enumerate(val_loader):
-            image = image.to(device)
-            mask = mask.to(device)
+        for idx, batch in enumerate(val_loader):
+            image = batch['image'][tio.DATA].to(device)
+            mask = batch['mask'][tio.DATA].to(device)
 
             #forward propagation on the validation batch
             outputs = model(image)
