@@ -63,14 +63,14 @@ class UNet3D_2(nn.Module):
         enc5 = self.encoder5(self.pool4(enc4))
 
         #bottleneck formation
-        bottleneck = self.bottleneck(self.pool5(enc5))      #features *32
+        bottleneck = self.bottleneck(self.pool5(enc5))      #features * 32
 
         #decoding and up-sampling
         dec5 = self.upconv5(bottleneck)   #features * 32 -> features * 16
         dec5 = torch.cat([dec5, enc5], dim=1)
         dec5 = self.decoder5(dec5)        #features * 16
 
-        dec4 = self.upconv4(bottleneck)   #features * 16 -> features * 8
+        dec4 = self.upconv4(dec5)   #features * 16 -> features * 8
         dec4 = torch.cat([dec4, enc4], dim=1)     
         dec4 = self.decoder4(dec4)        #features * 8
 
@@ -114,7 +114,9 @@ class UNet3D_2(nn.Module):
     #     d, h, w = encoder_output.shape[2:]
     #     return encoder_output[:, :, ]
 
+
 #Function to create the model
 def initialize_Unet3D_2(device, in_channels=1, out_channels=6, init_features=32):
     model = UNet3D_2(in_channels, out_channels, init_features)
+    print(f'now using second version of the model!')
     return model.to(device) #used to move the model to the specified device

@@ -100,4 +100,5 @@ class UNet3D(nn.Module):
 #Function to create the model
 def initialize_Unet3D(device, in_channels=1, out_channels=6, init_features=32):
     model = UNet3D(in_channels, out_channels, init_features)
+    print('now using first version of the model!')
     return model.to(device) #used to move the model to the specified device

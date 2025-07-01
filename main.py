@@ -2,6 +2,7 @@ import torch
 import argparse
 import os
 from model import initialize_Unet3D
+from model_2 import initialize_Unet3D_2
 from train import train
 from utils import customize_seed
 
@@ -16,7 +17,7 @@ def main(args):
     print(f"Using device: {device}")
     
     #model intialization
-    model = initialize_Unet3D(device)         #now in_channels = 7 (with the positional encodings)
+    model = initialize_Unet3D_2(device)  
 
     #model training entrance
     train(model, args, device)
@@ -38,7 +39,7 @@ if __name__ == "__main__":
         help="Batch size for training"
     )
     parser.add_argument(
-        "--epochs", type=int, default=150,
+        "--epochs", type=int, default=100,
         help="Number of epochs for training"
     )
     parser.add_argument(
