@@ -59,7 +59,7 @@ def train(model, args, device):
         #model parameters saving with avg_val_loss as the criterion
         if avg_val_loss < best_val_loss:
             best_val_loss = avg_val_loss
-            torch.save(model.state_dict(), "best_Unet_3D_Yuyang_8th_version.pth")
+            torch.save(model.state_dict(), "best_Unet_3D_Yuyang_9th_version.pth")
             print(f"Saved new best model✅! At epoch {epoch+1} with avg_val_loss: {avg_val_loss:.4f}")
         
         #recording the training history
@@ -90,7 +90,7 @@ def train(model, args, device):
         ]
         rows.append(row)
 
-    csv_path = "/home/yxing/training_data/Unet_training_logs_4.csv"     
+    csv_path = "/home/yxing/training_data/Unet_training_logs_5.csv"     
     with open(csv_path, 'w', newline='') as f:
         writer = csv.writer(f)
         writer.writerow(header)

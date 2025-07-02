@@ -50,9 +50,9 @@ class HipDataset(Dataset):
         mask_tensor = crop_or_pad_depth(mask_tensor, target_depth)
 
         #downsampling process before training
-        image_tensor = F.interpolate(image_tensor.unsqueeze(0), size=(160, 256, 256),               #will then try set to 160 as depth first
+        image_tensor = F.interpolate(image_tensor.unsqueeze(0), size=(128, 256, 256),               #will then try set to 160 as depth first
                                      mode='trilinear', align_corners=False).squeeze(0)
-        mask_tensor = F.interpolate(mask_tensor.unsqueeze(0), size=(160, 256, 256),
+        mask_tensor = F.interpolate(mask_tensor.unsqueeze(0), size=(128, 256, 256),
                                     mode='nearest').squeeze(0)
         
         #applying data augmentation
@@ -177,9 +177,3 @@ def add_positonal_encoding(image_tensor):
 #         subjects.append(subject)
 
 #     return subjects
-
-
-
-
-
-        

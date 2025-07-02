@@ -54,7 +54,7 @@ def load_nifti_as_tensor(image_path):
     image_tensor = crop_or_pad_depth(image_tensor, 312)
 
     #resize to match training resolution
-    image_tensor = F.interpolate(image_tensor.unsqueeze(0), size=(160, 256, 256),    
+    image_tensor = F.interpolate(image_tensor.unsqueeze(0), size=(128, 256, 256),       #change in accordance with the third model  
                                      mode='trilinear', align_corners=False).squeeze(0)
     
     return image_tensor, affine, header

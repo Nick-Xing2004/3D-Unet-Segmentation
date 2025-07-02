@@ -2,7 +2,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch
 
-#second version of the UNet3D model, with stronger receptive field. (6 encoding layers, 5 encoding layers for the first version)       [07/01/2025]
+#the second version of the UNet3D model, with stronger receptive field. (6 encoding layers, 5 encoding layers for the first version)       [07/01/2025]
 
 class UNet3D_2(nn.Module):
     # model intialization
@@ -118,5 +118,5 @@ class UNet3D_2(nn.Module):
 #Function to create the model
 def initialize_Unet3D_2(device, in_channels=1, out_channels=6, init_features=32):
     model = UNet3D_2(in_channels, out_channels, init_features)
-    print(f'now using second version of the model!')
+    print(f'now using the second 2️⃣ version of the model!')
     return model.to(device) #used to move the model to the specified device
