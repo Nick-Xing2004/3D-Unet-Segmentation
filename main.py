@@ -3,6 +3,7 @@ import argparse
 import os
 from model import initialize_Unet3D
 from model_2 import initialize_Unet3D_2
+from model_3 import initialize_Unet3D_3
 from train import train
 from utils import customize_seed
 
@@ -17,7 +18,7 @@ def main(args):
     print(f"Using device: {device}")
     
     #model intialization
-    model = initialize_Unet3D_2(device)  
+    model = initialize_Unet3D_3(device)  
 
     #model training entrance
     train(model, args, device)
