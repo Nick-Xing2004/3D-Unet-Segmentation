@@ -7,10 +7,12 @@ import csv
 #visualization tool used for logging training process
 import wandb
 import torchio as tio
+import numpy as np
+from scipy.ndimage import binary_dilation, binary_erosion
 
 
 #intialize wandb project
-wandb.init(project='3D-Unet-Segmentation-Yuyang')
+wandb.init(project='3D-Unet-Segmentation-Yuyang-cost-function-structure-change')
 
 #model training process
 def train(model, args, device):
@@ -31,10 +33,9 @@ def train(model, args, device):
 
         #adjustint weights for each class within the cost function
         class_weights = torch.tensor([0.1, 5.0, 5.0, 5.0, 5.0, 5.0], dtype=torch.float32).to(device)
-        loss_fn = nn.CrossEntropyLoss(weight=class_weights)
 
         #model training & evaluation
-        train_loss = train_model(args, model, optimizer, train_loader, loss_fn, device)
+        train_loss = train_model(args, model, optimizer, train_loader, class_weights, device)
         avg_val_loss, avg_dice_scores, mean_dice_score_across_classes = validate_model(args, model, val_loader, epoch, device)
 
         print(
@@ -59,7 +60,7 @@ def train(model, args, device):
         #model parameters saving with avg_val_loss as the criterion
         if avg_val_loss < best_val_loss:
             best_val_loss = avg_val_loss
-            torch.save(model.state_dict(), "best_Unet_3D_Yuyang_9th_version.pth")
+            torch.save(model.state_dict(), "best_Unet_3D_Yuyang_10th_version.pth")
             print(f"Saved new best model✅! At epoch {epoch+1} with avg_val_loss: {avg_val_loss:.4f}")
         
         #recording the training history
@@ -90,7 +91,7 @@ def train(model, args, device):
         ]
         rows.append(row)
 
-    csv_path = "/home/yxing/training_data/Unet_training_logs_5.csv"     
+    csv_path = "/home/yxing/training_data/Unet_training_logs_6.csv"     
     with open(csv_path, 'w', newline='') as f:
         writer = csv.writer(f)
         writer.writerow(header)
@@ -100,27 +101,37 @@ def train(model, args, device):
 
 
 #epoch paraemeter training
-def train_model(args, model, optimizer, train_loader, loss_fn, device):
+def train_model(args, model, optimizer, train_loader, class_weights, device):
     model.train()
     total_loss = 0.0
+    alpha = 1.5  #alpha for boundary loss calculation, hyperparameter 
 
     for idx, batch in enumerate(train_loader):
-        #input shape printing
-        # print(f'input shape before training: {image.shape}')
         image = batch['image'][tio.DATA].to(device)
         mask = batch['mask'][tio.DATA].to(device)
 
         optimizer.zero_grad()
         #forward propagation
         outputs = model(image)
-        #loss calulation
-        loss = loss_fn(outputs, mask.squeeze(1).long()) 
+
+        m_tensor = calculate_multi_class_m_tensors(mask, num_classes=6, iterations=2).to(device)  #m_tensor ----> [B, 5, D, H, W]  
+        logit = outputs
+        
+        #setting up the cost function, keeping voxel-wise loss
+        loss_fn = nn.CrossEntropyLoss(weight=class_weights, reduction='none')
+        base_loss = loss_fn(logit, mask.squeeze(1).long())  # [B, D, H, W]
+
+        m_factor = 1 + alpha * m_tensor.max(dim=1, keepdim=True).values      # ----> [B, 1, D, H, W]
+        
+        #further loss calculation
+        weighted_loss = (base_loss.unsqueeze(1) * m_factor).mean()     #base_loss ----> [B, 1, D, H, W]
+
         #backward propgation and optimization
-        loss.backward()
+        weighted_loss.backward()
         optimizer.step()
 
         #record loss for the current batch
-        total_loss += loss.item()
+        total_loss += weighted_loss.item()
 
     #average loss calculation for the current epoch
     avg_train_loss = total_loss / len(train_loader)
@@ -136,6 +147,7 @@ def validate_model(args, model, val_loader, epoh, device):
     model.eval()
     total_loss = 0.0
     dice_sums = torch.zeros(5, device=device)     #5 foreground classes (1-5)
+    alpha = 1.5  #alpha for boundary loss calculation, hyperparameter
 
     with torch.no_grad():  # no need to calculate gradients during validation
         for idx, batch in enumerate(val_loader):
@@ -144,12 +156,20 @@ def validate_model(args, model, val_loader, epoh, device):
 
             #forward propagation on the validation batch
             outputs = model(image)
-            #loss calculation 
-            class_weights = torch.tensor([0.1, 5.0, 5.0, 5.0, 5.0, 5.0], dtype=torch.float32).to(device)
-            loss_fn = nn.CrossEntropyLoss(weight=class_weights)
+            m_tensor = calculate_multi_class_m_tensors(mask, num_classes=6, iterations=2).to(device)  #m_tensor ----> [B, 5, D, H, W]  
+            logit = outputs
 
-            loss = loss_fn(outputs, mask.squeeze(1).long())
-            total_loss += loss.item()
+            #base loss calculation 
+            class_weights = torch.tensor([0.1, 5.0, 5.0, 5.0, 5.0, 5.0], dtype=torch.float32).to(device)
+            loss_fn = nn.CrossEntropyLoss(weight=class_weights, reduction='none')
+            base_loss = loss_fn(logit, mask.squeeze(1).long())  # [B, D, H, W]
+
+            m_factor = 1 + alpha * m_tensor.max(dim=1, keepdim=True).values      # ----> [B, 1, D, H, W]
+            
+            #further loss calculation
+            weighted_loss = (base_loss.unsqueeze(1) * m_factor).mean()     #base_loss ----> [B, 1, D, H, W]
+            
+            total_loss += weighted_loss.item()
             batch_dices = calculate_dice_score(outputs, mask)
             dice_sums += batch_dices
 
@@ -177,3 +197,32 @@ def calculate_dice_score(pred, mask, smooth=1e-8):
         class_dice_scores.append(dice_score)
 
     return torch.stack(class_dice_scores)          #shape [5]
+
+
+#helper function to perform dilation & erosion on the predicted segmentation masks, embedding into the cost function
+#note: num_classes is the number of segmentation classes, including the background class
+def calculate_multi_class_m_tensors(batch_masks, num_classes=6, iterations=2):
+    assert batch_masks.dim() == 5
+    B, _, D, H, W = batch_masks.shape
+    batch_masks = batch_masks.squeeze(1)        # ----> [B, D, H, W]
+
+    m_list = []
+
+    for b in range(B):
+        m_per_class = []
+        mask_np = batch_masks[b].cpu().numpy()  #convert to numpy array for processing
+        for cls in range(1, num_classes):   #processing for each label
+            binary = (mask_np == cls).astype(np.uint8)
+            #perform dilation & erosion
+            dilated = binary_dilation(binary, iterations=iterations)   #dilated
+            eroded = binary_erosion(binary, iterations=iterations)     #eroded
+            #m calculation
+            m = (dilated.astype(np.uint8) - eroded.astype(np.uint8)).astype(np.float32)
+            m_per_class.append(m)
+
+        m_stack = np.stack(m_per_class, axis = 0)      # ----> [num_classes - 1, D, H, W]
+        m_list.append(m_stack)          #nume_classes - 1 for each batch sample
+
+    #tensor conversion
+    m_tensor = torch.from_numpy(np.stack(m_list, axis = 0))   #[B, num_classes - 1, D, H, W]
+    return m_tensor

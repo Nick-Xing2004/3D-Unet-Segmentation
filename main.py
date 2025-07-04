@@ -18,7 +18,7 @@ def main(args):
     print(f"Using device: {device}")
     
     #model intialization
-    model = initialize_Unet3D_3(device)  
+    model = initialize_Unet3D_2(device)  
 
     #model training entrance
     train(model, args, device)
