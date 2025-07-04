@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from data_loader import dataloader
+from data_loader_transfer_learning import dataloader_transfer_learning
 import pandas as pd
 import csv
 #visualization tool used for logging training process
@@ -12,7 +13,7 @@ from scipy.ndimage import binary_dilation, binary_erosion
 
 
 #intialize wandb project
-wandb.init(project='3D-Unet-Segmentation-Yuyang-cost-function-structure-change')
+wandb.init(project='3D-Unet-Segmentation-Yuyang-transfer-learning')
 
 #model training process
 def train(model, args, device):
@@ -29,10 +30,10 @@ def train(model, args, device):
 
     for epoch in range(args.epochs):
         print(f'Epoch {epoch + 1}/{args.epochs}')
-        train_loader, val_loader = dataloader(args)
+        train_loader, val_loader = dataloader_transfer_learning(args)  #currently doing transfer learning 
 
         #adjustint weights for each class within the cost function
-        class_weights = torch.tensor([0.1, 5.0, 5.0, 5.0, 5.0, 5.0], dtype=torch.float32).to(device)
+        class_weights = torch.tensor([0.1, 5.0, 5.0, 5.0, 5.0], dtype=torch.float32).to(device)
 
         #model training & evaluation
         train_loss = train_model(args, model, optimizer, train_loader, class_weights, device)
@@ -60,7 +61,7 @@ def train(model, args, device):
         #model parameters saving with avg_val_loss as the criterion
         if avg_val_loss < best_val_loss:
             best_val_loss = avg_val_loss
-            torch.save(model.state_dict(), "best_Unet_3D_Yuyang_10th_version.pth")
+            torch.save(model.state_dict(), "Unet_3D_Yuyang_pretraining.pth")      
             print(f"Saved new best model✅! At epoch {epoch+1} with avg_val_loss: {avg_val_loss:.4f}")
         
         #recording the training history
@@ -91,7 +92,7 @@ def train(model, args, device):
         ]
         rows.append(row)
 
-    csv_path = "/home/yxing/training_data/Unet_training_logs_6.csv"     
+    csv_path = "/home/yxing/training_data/Unet_training_logs_7.csv"     
     with open(csv_path, 'w', newline='') as f:
         writer = csv.writer(f)
         writer.writerow(header)
@@ -114,24 +115,26 @@ def train_model(args, model, optimizer, train_loader, class_weights, device):
         #forward propagation
         outputs = model(image)
 
-        m_tensor = calculate_multi_class_m_tensors(mask, num_classes=6, iterations=2).to(device)  #m_tensor ----> [B, 5, D, H, W]  
-        logit = outputs
+        # m_tensor = calculate_multi_class_m_tensors(mask, num_classes=6, iterations=1).to(device)  #m_tensor ----> [B, 5, D, H, W]  
+        # logit = outputs
         
         #setting up the cost function, keeping voxel-wise loss
-        loss_fn = nn.CrossEntropyLoss(weight=class_weights, reduction='none')
-        base_loss = loss_fn(logit, mask.squeeze(1).long())  # [B, D, H, W]
+        # loss_fn = nn.CrossEntropyLoss(weight=class_weights, reduction='none')
+        loss_fn = nn.CrossEntropyLoss(weight=class_weights)      #regular loss function
 
-        m_factor = 1 + alpha * m_tensor.max(dim=1, keepdim=True).values      # ----> [B, 1, D, H, W]
+        base_loss = loss_fn(outputs, mask.squeeze(1).long())  # [B, D, H, W]
+
+        # m_factor = 1 + alpha * m_tensor.max(dim=1, keepdim=True).values      # ----> [B, 1, D, H, W]
         
         #further loss calculation
-        weighted_loss = (base_loss.unsqueeze(1) * m_factor).mean()     #base_loss ----> [B, 1, D, H, W]
+        # weighted_loss = (base_loss.unsqueeze(1) * m_factor).mean()     #base_loss ----> [B, 1, D, H, W]
 
         #backward propgation and optimization
-        weighted_loss.backward()
+        base_loss.backward()
         optimizer.step()
 
         #record loss for the current batch
-        total_loss += weighted_loss.item()
+        total_loss += base_loss.item()
 
     #average loss calculation for the current epoch
     avg_train_loss = total_loss / len(train_loader)
@@ -156,20 +159,22 @@ def validate_model(args, model, val_loader, epoh, device):
 
             #forward propagation on the validation batch
             outputs = model(image)
-            m_tensor = calculate_multi_class_m_tensors(mask, num_classes=6, iterations=2).to(device)  #m_tensor ----> [B, 5, D, H, W]  
-            logit = outputs
+            # m_tensor = calculate_multi_class_m_tensors(mask, num_classes=6, iterations=1).to(device)  #m_tensor ----> [B, 5, D, H, W]  
+            # logit = outputs
 
             #base loss calculation 
-            class_weights = torch.tensor([0.1, 5.0, 5.0, 5.0, 5.0, 5.0], dtype=torch.float32).to(device)
-            loss_fn = nn.CrossEntropyLoss(weight=class_weights, reduction='none')
-            base_loss = loss_fn(logit, mask.squeeze(1).long())  # [B, D, H, W]
+            class_weights = torch.tensor([0.1, 5.0, 5.0, 5.0, 5.0], dtype=torch.float32).to(device)
+            # loss_fn = nn.CrossEntropyLoss(weight=class_weights, reduction='none')
+            loss_fn = nn.CrossEntropyLoss(weight = class_weights)
+            
+            base_loss = loss_fn(outputs, mask.squeeze(1).long())  # [B, D, H, W]
 
-            m_factor = 1 + alpha * m_tensor.max(dim=1, keepdim=True).values      # ----> [B, 1, D, H, W]
+            # m_factor = 1 + alpha * m_tensor.max(dim=1, keepdim=True).values      # ----> [B, 1, D, H, W]
             
-            #further loss calculation
-            weighted_loss = (base_loss.unsqueeze(1) * m_factor).mean()     #base_loss ----> [B, 1, D, H, W]
+            # #further loss calculation
+            # weighted_loss = (base_loss.unsqueeze(1) * m_factor).mean()     #base_loss ----> [B, 1, D, H, W]
             
-            total_loss += weighted_loss.item()
+            total_loss += base_loss.item()
             batch_dices = calculate_dice_score(outputs, mask)
             dice_sums += batch_dices
 
@@ -201,7 +206,7 @@ def calculate_dice_score(pred, mask, smooth=1e-8):
 
 #helper function to perform dilation & erosion on the predicted segmentation masks, embedding into the cost function
 #note: num_classes is the number of segmentation classes, including the background class
-def calculate_multi_class_m_tensors(batch_masks, num_classes=6, iterations=2):
+def calculate_multi_class_m_tensors(batch_masks, num_classes=6, iterations=1):
     assert batch_masks.dim() == 5
     B, _, D, H, W = batch_masks.shape
     batch_masks = batch_masks.squeeze(1)        # ----> [B, D, H, W]
