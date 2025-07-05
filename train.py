@@ -30,10 +30,10 @@ def train(model, args, device):
 
     for epoch in range(args.epochs):
         print(f'Epoch {epoch + 1}/{args.epochs}')
-        train_loader, val_loader = dataloader_transfer_learning(args)  #currently doing transfer learning 
+        train_loader, val_loader = dataloader(args)  #currently not doing transfer learning 
 
         #adjustint weights for each class within the cost function
-        class_weights = torch.tensor([0.1, 5.0, 5.0, 5.0, 5.0], dtype=torch.float32).to(device)
+        class_weights = torch.tensor([0.1, 5.0, 5.0, 5.0, 5.0, 5.0], dtype=torch.float32).to(device)
 
         #model training & evaluation
         train_loss = train_model(args, model, optimizer, train_loader, class_weights, device)
@@ -61,7 +61,7 @@ def train(model, args, device):
         #model parameters saving with avg_val_loss as the criterion
         if avg_val_loss < best_val_loss:
             best_val_loss = avg_val_loss
-            torch.save(model.state_dict(), "Unet_3D_Yuyang_pretraining.pth")      
+            torch.save(model.state_dict(), "best_Unet_3D_Yuyang_11th_version_transfer_learning.pth")      
             print(f"Saved new best model✅! At epoch {epoch+1} with avg_val_loss: {avg_val_loss:.4f}")
         
         #recording the training history
@@ -163,7 +163,7 @@ def validate_model(args, model, val_loader, epoh, device):
             # logit = outputs
 
             #base loss calculation 
-            class_weights = torch.tensor([0.1, 5.0, 5.0, 5.0, 5.0], dtype=torch.float32).to(device)
+            class_weights = torch.tensor([0.1, 5.0, 5.0, 5.0, 5.0, 5.0], dtype=torch.float32).to(device)
             # loss_fn = nn.CrossEntropyLoss(weight=class_weights, reduction='none')
             loss_fn = nn.CrossEntropyLoss(weight = class_weights)
             
