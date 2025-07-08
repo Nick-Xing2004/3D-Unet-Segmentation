@@ -1,6 +1,7 @@
 #scripts for model performance QA
 
 import torch
+from model_2 import initialize_Unet3D_2
 from model import initialize_Unet3D
 import nibabel as nib
 import os
@@ -9,12 +10,12 @@ import numpy as np
 
 
 def model_performance_QA():
-    device = "cuda:3" if torch.cuda.is_available() else "cpu"
+    device = "cuda:4" if torch.cuda.is_available() else "cpu"
     print(f"Using device: {device} for model QA")
         
     #model intialization & param loading
-    model = initialize_Unet3D(device)
-    model.load_state_dict(torch.load("best_Unet_3D_Yuyang_6th_version.pth.pth"))
+    model = initialize_Unet3D_2(device)
+    model.load_state_dict(torch.load("best_Unet_3D_Yuyang_8th_version.pth"))
     model.eval()
 
     save_dir = "/home/yxing/predictions_QA"           #the dir that all pred_nii will be stored
@@ -39,7 +40,7 @@ def model_performance_QA():
         pred_up = F.interpolate(pred.float(), size=(312, 512, 512), mode='nearest')  #[1, 1, 160, 256, 256]   ----->  [1, 1, 312, 512, 512]   
         
         #save as nifti
-        output_path = os.path.join(save_dir, f"{QA_dir}_pred_before_augmentation.nii.gz")
+        output_path = os.path.join(save_dir, f"{QA_dir}_pred_8th_version.nii.gz")
         save_prediction(output_path, affine, header, pred_up, gt_mask_path)
         print(f"Saved prediction for {QA_dir}✅! -> {output_path}")
         

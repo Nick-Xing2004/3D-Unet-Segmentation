@@ -101,6 +101,10 @@ def dataloader(Args):
 
     # train_dataset, val_dataset = random_split(dataset, [train_size, val_size], generator=generator) # random split with seed for reproducibility
     train_indices, val_indices = random_split(range(len(dataset)), [train_size, val_size], generator=generator)
+
+    # # printing the validation set dir names
+    # for i in val_indices:
+    #     print(f'{dataset.sample_dirs[i]}\n')   
     
     # training and validation dataset formation with data augmentation prepared for the training dataset
     # train_dataset = torch.utils.data.Subset(HipDataset(root_dir, transform=train_transform), train_indices)

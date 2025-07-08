@@ -9,7 +9,7 @@ import csv
 import wandb
 import torchio as tio
 import numpy as np
-from scipy.ndimage import binary_dilation, binary_erosion
+from scipy.ndimage import binary_dilation, binary_erosion    #now unused
 
 
 #intialize wandb project
@@ -17,7 +17,7 @@ wandb.init(project='3D-Unet-Segmentation-Yuyang-transfer-learning')
 
 #model training process
 def train(model, args, device):
-    optimizer = optim.Adam(model.parameters(), lr=1e-4)
+    optimizer = optim.Adam(model.parameters(), lr=1e-4)        #learning rate adjustment
     best_val_loss = float('inf')
     
     history = {
@@ -61,7 +61,7 @@ def train(model, args, device):
         #model parameters saving with avg_val_loss as the criterion
         if avg_val_loss < best_val_loss:
             best_val_loss = avg_val_loss
-            torch.save(model.state_dict(), "best_Unet_3D_Yuyang_11th_version_transfer_learning.pth")      
+            torch.save(model.state_dict(), "best_Unet_3D_Yuyang_12th_version_transfer_learning.pth")      
             print(f"Saved new best model✅! At epoch {epoch+1} with avg_val_loss: {avg_val_loss:.4f}")
         
         #recording the training history
@@ -92,7 +92,7 @@ def train(model, args, device):
         ]
         rows.append(row)
 
-    csv_path = "/home/yxing/training_data/Unet_training_logs_7.csv"     
+    csv_path = "/home/yxing/training_data/Unet_training_logs_8.csv"     
     with open(csv_path, 'w', newline='') as f:
         writer = csv.writer(f)
         writer.writerow(header)

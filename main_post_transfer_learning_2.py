@@ -7,7 +7,7 @@ from model_3 import initialize_Unet3D_3
 from train import train
 from utils import customize_seed
 
-#the pipeline entrance after transfer learning    (encoder copied from pretrained model)
+#the pipeline entrance after transfer learning    (both encoder & decoder weights copied from pretrained model)
 
 def main(args):
     """
@@ -19,7 +19,7 @@ def main(args):
     device = "cuda:4" if torch.cuda.is_available() else "cpu"
     print(f"Using device: {device}")
 
-    print("employing transfer learning: loading pretrained model weights for encoder only")
+    print("employing transfer learning: loading pretrained model weights for encoder and decoder, but not the final conv layer")
     
     #target model intialization
     target_model = initialize_Unet3D_2(device, out_channels=6)
@@ -29,11 +29,13 @@ def main(args):
     #load the trained weights
     pretrained_model.load_state_dict(torch.load('Unet_3D_Yuyang_pretraining.pth'))
 
-    #loading the encoder weights learnt from transfer learning
-    for name, param in pretrained_model.named_parameters():
-        if name.startswith("encoder"):
-            target_model.state_dict()[name].copy_(param.data)
-
+    pretrained_dict = pretrained_model.state_dict()
+    target_dict = target_model.state_dict()
+    #loading all layers' weights except the final conv layer
+    pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in target_dict and not k.startswith("final_conv")}
+    target_dict.update(pretrained_dict)
+    target_model.load_state_dict(target_dict)
+    
     #model training entrance
     train(target_model, args, device)
 
