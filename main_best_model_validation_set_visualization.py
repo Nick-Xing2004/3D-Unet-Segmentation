@@ -1,27 +1,10 @@
-import torch
 import argparse
-import os
-from model import initialize_Unet3D
-from model_2 import initialize_Unet3D_2
-from model_3 import initialize_Unet3D_3
-from train import train
 from utils import customize_seed
+from best_model_validation_set_visualization import visualize_best_model_validation_set
 
 def main(args):
-    """
-    Main function that initializes and trains the Unet model.
-
-    Args:
-        args (argparse.Namespace): Parsed command-line arguments.
-    """
-    device = "cuda:4" if torch.cuda.is_available() else "cpu"
-    print(f"Using device: {device}")
-    
-    #model intialization
-    model = initialize_Unet3D_2(device, out_channels=6)  
-
-    #model training entrance
-    train(model, args, device)
+    visualize_best_model_validation_set(args)
+    print('🗺️visualization work done!')
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(

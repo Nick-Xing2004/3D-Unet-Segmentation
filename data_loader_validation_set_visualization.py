@@ -164,29 +164,34 @@ def dataloader(Args):
     # training and validation dataset formation with data augmentation prepared for the training dataset
     # train_dataset = torch.utils.data.Subset(HipDataset(root_dir, transform=train_transform), train_indices)
     # val_dataset = torch.utils.data.Subset(HipDataset(root_dir, transform=None), val_indices)
-    train_subjects = [dataset[i] for i in train_indices]
+    # train_subjects = [dataset[i] for i in train_indices]
     val_subjects = [dataset[i] for i in val_indices]
 
-    #add new additional data to the validation set
+    val_subjects_self_labeled = []
+
+    #new additional data separated from the orignal validation set
     for i in range(len(dataset2)):
         subject = dataset2[i]
-        val_subjects.append(subject)
+        val_subjects_self_labeled.append(subject)
 
-    train_dataset = tio.SubjectsDataset(train_subjects, transform=train_transform)
+    # train_dataset = tio.SubjectsDataset(train_subjects, transform=train_transform)
     val_dataset = tio.SubjectsDataset(val_subjects)
+    val_dataset_self_labeled = tio.SubjectsDataset(val_subjects_self_labeled)
     
     # #code for debugging: (train_set, val_set preparation)
     # train_dataset = torch.utils.data.Subset(dataset, [0])
     # val_dataset = torch.utils.data.Subset(dataset, [0])
     
     # use TorchIO Subject loader
-    train_loader = tio.SubjectsLoader(train_dataset, batch_size=Args.batch_size, shuffle=True)
+    # train_loader = tio.SubjectsLoader(train_dataset, batch_size=Args.batch_size, shuffle=True)
     val_loader = tio.SubjectsLoader(val_dataset, batch_size=Args.batch_size, shuffle=False)
+    val_loader_self_labeled = tio.SubjectsLoader(val_dataset_self_labeled, batch_size=Args.batch_size, shuffle=False)
 
-    print(f'train dataset size: {len(train_dataset)}')
+    # print(f'train dataset size: {len(train_dataset)}')
     print(f'validation dataset size: {len(val_dataset)}')
+    print(f'validation dataset self-labeled size: {len(val_dataset_self_labeled)}')
     
-    return train_loader, val_loader
+    return val_loader, val_loader_self_labeled
 
 
 # helper function for cropping sample images and masks to the same size

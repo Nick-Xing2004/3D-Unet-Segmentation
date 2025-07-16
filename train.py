@@ -30,7 +30,7 @@ def train(model, args, device):
 
     for epoch in range(args.epochs):
         print(f'Epoch {epoch + 1}/{args.epochs}')
-        train_loader, val_loader = dataloader(args)  #currently not doing transfer learning 
+        train_loader, val_loader = dataloader(args)  #regular training data_loader 
 
         #adjustint weights for each class within the cost function
         class_weights = torch.tensor([0.1, 5.0, 5.0, 5.0, 5.0, 5.0], dtype=torch.float32).to(device)
@@ -61,7 +61,7 @@ def train(model, args, device):
         #model parameters saving with avg_val_loss as the criterion
         if avg_val_loss < best_val_loss:
             best_val_loss = avg_val_loss
-            torch.save(model.state_dict(), "best_Unet_3D_Yuyang_12th_version_transfer_learning.pth")      
+            torch.save(model.state_dict(), "best_Unet_3D_Yuyang_13th_version.pth")      
             print(f"Saved new best model✅! At epoch {epoch+1} with avg_val_loss: {avg_val_loss:.4f}")
         
         #recording the training history
@@ -92,7 +92,7 @@ def train(model, args, device):
         ]
         rows.append(row)
 
-    csv_path = "/home/yxing/training_data/Unet_training_logs_8.csv"     
+    csv_path = "/home/yxing/training_data/Unet_training_logs_9.csv"     
     with open(csv_path, 'w', newline='') as f:
         writer = csv.writer(f)
         writer.writerow(header)

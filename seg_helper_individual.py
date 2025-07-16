@@ -10,39 +10,41 @@ import numpy as np
 
 
 def model_performance_QA():
-    device = "cuda:4" if torch.cuda.is_available() else "cpu"
+    device = "cuda:2" if torch.cuda.is_available() else "cpu"
     print(f"Using device: {device} for model QA")
+
+    gt_mask_path = "/banana/yuyang/additional_pelvis_dataset/102924/102924-mask-final-label.nii.gz"
         
     #model intialization & param loading
     model = initialize_Unet3D_2(device)
     model.load_state_dict(torch.load("best_Unet_3D_Yuyang_8th_version.pth"))
     model.eval()
 
-    save_dir = "/home/yxing/additional_data_helper"           #the dir that all pred_nii will be stored
+    save_dir = "/home/yxing/additional_data_segmentation_helper"           #the dir that all pred_nii will be stored
     os.makedirs(save_dir, exist_ok=True)
 
-    root_dir = "/banana/yuyang/3D_Unet_QA"                #the dir containing QA samples
+    root_dir = "/banana/yuyang/additional_pelvis_dataset"                #the dir containing QA samples
     sample_dirs = [d for d in os.listdir(root_dir) if os.path.isdir(os.path.join(root_dir, d))]
 
-    for QA_dir in sample_dirs:
-        dir_path = os.path.join(root_dir, QA_dir)
-        image_path = os.path.join(dir_path, f"{QA_dir}.nii.gz")
-        gt_mask_path = os.path.join(dir_path, f"{QA_dir}_bone_mask-1.nii.gz")
-        image_tensor, affine, header = load_nifti_as_tensor(image_path)
-        image_tensor = image_tensor.to(device).unsqueeze(0)   #[1, 1, D, H, W]  --->  [1, 1, 160, 256, 256]
+    # for QA_dir in sample_dirs:
+    dir_path = os.path.join(root_dir, "102895")
+    image_path = os.path.join(dir_path, f"case-102895.nii")
+    # gt_mask_path = os.path.join(dir_path, f"{QA_dir}_bone_mask-1.nii.gz")
+    image_tensor, affine, header = load_nifti_as_tensor(image_path)
+    image_tensor = image_tensor.to(device).unsqueeze(0)   #[1, 1, D, H, W]  --->  [1, 1, 160, 256, 256]
 
-        #prediction process
-        with torch.no_grad():
-            outputs = model(image_tensor)   #[1, C, D, H, W]   ---->   [1, 6, 160, 256, 256]
-            pred = torch.argmax(outputs, dim=1, keepdim=True)   #[1, C, D, H, W]    ----->  [1(B), 1, D, H, W]  ---->  [1, 1, 160, 256, 256]
+    #prediction process
+    with torch.no_grad():
+        outputs = model(image_tensor)   #[1, C, D, H, W]   ---->   [1, 6, 160, 256, 256]
+        pred = torch.argmax(outputs, dim=1, keepdim=True)   #[1, C, D, H, W]    ----->  [1(B), 1, D, H, W]  ---->  [1, 1, 160, 256, 256]
 
-        #upsampling after argMax:
-        pred_up = F.interpolate(pred.float(), size=(312, 512, 512), mode='nearest')  #[1, 1, 160, 256, 256]   ----->  [1, 1, 312, 512, 512]   
-        
-        #save as nifti
-        output_path = os.path.join(save_dir, f"{QA_dir}_pred_8th_version.nii.gz")
-        save_prediction(output_path, affine, header, pred_up, gt_mask_path)
-        print(f"Saved prediction for {QA_dir}✅! -> {output_path}")
+    #upsampling after argMax:
+    pred_up = F.interpolate(pred.float(), size=(312, 512, 512), mode='nearest')  #[1, 1, 160, 256, 256]   ----->  [1, 1, 312, 512, 512]   
+    
+    #save as nifti
+    output_path = os.path.join(save_dir, f"102895_mask.nii.gz")
+    save_prediction(output_path, affine, header, pred_up, gt_mask_path)
+    print(f"Saved prediction for 102895 ✅! -> {output_path}")
         
             
 def load_nifti_as_tensor(image_path):
