@@ -1,9 +1,10 @@
 import argparse
 from utils import customize_seed
 from best_model_validation_set_visualization import visualize_best_model_validation_set
+from best_model_residual_calculation import calculate_residual_extra_validation_set
 
 def main(args):
-    visualize_best_model_validation_set(args)
+    calculate_residual_extra_validation_set(args)        #may be used for different purposes
     print('🗺️visualization work done!')
 
 if __name__ == "__main__":

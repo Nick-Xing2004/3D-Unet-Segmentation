@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 from data_loader import dataloader
 from data_loader_transfer_learning import dataloader_transfer_learning
+from data_loader_original import dataloader_original
 import pandas as pd
 import csv
 #visualization tool used for logging training process
@@ -13,7 +14,7 @@ from scipy.ndimage import binary_dilation, binary_erosion    #now unused
 
 
 #intialize wandb project
-wandb.init(project='3D-Unet-Segmentation-Yuyang-transfer-learning')
+wandb.init(project='3D-Unet-Segmentation-Yuyang')
 
 #model training process
 def train(model, args, device):
@@ -30,10 +31,10 @@ def train(model, args, device):
 
     for epoch in range(args.epochs):
         print(f'Epoch {epoch + 1}/{args.epochs}')
-        train_loader, val_loader = dataloader(args)  #regular training data_loader 
+        train_loader, val_loader = dataloader_original(args)  #regular training data_loader 
 
         #adjustint weights for each class within the cost function
-        class_weights = torch.tensor([0.1, 5.0, 5.0, 5.0, 5.0, 5.0], dtype=torch.float32).to(device)
+        class_weights = torch.tensor([0.1, 2.5, 2.5, 2.5, 2.5, 2.5], dtype=torch.float32).to(device)
 
         #model training & evaluation
         train_loss = train_model(args, model, optimizer, train_loader, class_weights, device)
@@ -61,8 +62,8 @@ def train(model, args, device):
         #model parameters saving with avg_val_loss as the criterion
         if avg_val_loss < best_val_loss:
             best_val_loss = avg_val_loss
-            torch.save(model.state_dict(), "best_Unet_3D_Yuyang_13th_version.pth")      
-            print(f"Saved new best model✅! At epoch {epoch+1} with avg_val_loss: {avg_val_loss:.4f}")
+            torch.save(model.state_dict(), "best_Unet_3D_Yuyang_14th_version.pth")      
+            print(f"Saved new best model✅ (14th version🤡)! At epoch {epoch+1} with avg_val_loss: {avg_val_loss:.4f}")
         
         #recording the training history
         history['epoch'].append(epoch + 1)
@@ -163,7 +164,7 @@ def validate_model(args, model, val_loader, epoh, device):
             # logit = outputs
 
             #base loss calculation 
-            class_weights = torch.tensor([0.1, 5.0, 5.0, 5.0, 5.0, 5.0], dtype=torch.float32).to(device)
+            class_weights = torch.tensor([0.1, 2.5, 2.5, 2.5, 2.5, 2.5], dtype=torch.float32).to(device)
             # loss_fn = nn.CrossEntropyLoss(weight=class_weights, reduction='none')
             loss_fn = nn.CrossEntropyLoss(weight = class_weights)
             

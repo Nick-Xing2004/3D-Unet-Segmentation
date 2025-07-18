@@ -14,7 +14,7 @@ def main(args):
     Args:
         args (argparse.Namespace): Parsed command-line arguments.
     """
-    device = "cuda:4" if torch.cuda.is_available() else "cpu"
+    device = "cuda:5" if torch.cuda.is_available() else "cpu"
     print(f"Using device: {device}")
     
     #model intialization

@@ -10,7 +10,7 @@ import numpy as np
 
 
 def model_performance_QA():
-    device = "cuda:4" if torch.cuda.is_available() else "cpu"
+    device = "cuda:6" if torch.cuda.is_available() else "cpu"
     print(f"Using device: {device} for model QA")
         
     #model intialization & param loading
@@ -18,7 +18,7 @@ def model_performance_QA():
     model.load_state_dict(torch.load("best_Unet_3D_Yuyang_8th_version.pth"))
     model.eval()
 
-    save_dir = "/home/yxing/additional_data_helper"           #the dir that all pred_nii will be stored
+    save_dir = "/home/yxing/best_model_pred_QA"           #the dir that all pred_nii will be stored
     os.makedirs(save_dir, exist_ok=True)
 
     root_dir = "/banana/yuyang/3D_Unet_QA"                #the dir containing QA samples
