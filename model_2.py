@@ -119,4 +119,4 @@ class UNet3D_2(nn.Module):
 def initialize_Unet3D_2(device, in_channels=1, out_channels=6, init_features=32):
     model = UNet3D_2(in_channels, out_channels, init_features)
     print(f'now using the second 2️⃣ version of the model!')
-    return model.to(device) #used to move the model to the specified device
+    return model #used to move the model to the specified device

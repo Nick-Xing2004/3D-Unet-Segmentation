@@ -6,6 +6,7 @@ from model_2 import initialize_Unet3D_2
 from model_3 import initialize_Unet3D_3
 from train import train
 from utils import customize_seed
+from train_boundary_loss import train_with_boundary_loss
 
 def main(args):
     """
@@ -14,14 +15,24 @@ def main(args):
     Args:
         args (argparse.Namespace): Parsed command-line arguments.
     """
-    device = "cuda:5" if torch.cuda.is_available() else "cpu"
-    print(f"Using device: {device}")
+
+    assert torch.cuda.device_count() >= 2, "Requires at least 2 GPUs"
+
+    # device = "cuda:5" if torch.cuda.is_available() else "cpu"
+    # print(f"Using device: {device}")
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Using {torch.cuda.device_count()} GPUs")
     
     #model intialization
-    model = initialize_Unet3D_2(device, out_channels=6)  
+    model = initialize_Unet3D_2(device, out_channels=6) 
+
+    #mutli-GPU training setup, packagin the model into DataParallel
+    model = torch.nn.DataParallel(model, device_ids=[0, 1])      #using GPU 0, 1; but can later specify in command using 'CUDA_VISIBLE_DEVICES=5,6'
+    model = model.to(device)
 
     #model training entrance
-    train(model, args, device)
+    train_with_boundary_loss(model, args, device)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(

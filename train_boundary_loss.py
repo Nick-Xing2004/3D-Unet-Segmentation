@@ -14,10 +14,10 @@ from scipy.ndimage import binary_dilation, binary_erosion    #now unused
 
 
 #intialize wandb project
-wandb.init(project='3D-Unet-Segmentation-Yuyang')
+wandb.init(project='3D-Unet-Segmentation-Yuyang-Boundary-Loss')
 
 #model training process
-def train(model, args, device):
+def train_with_boundary_loss(model, args, device):
     optimizer = optim.Adam(model.parameters(), lr=1e-4)        #learning rate adjustment
     best_val_loss = float('inf')
     
@@ -116,26 +116,27 @@ def train_model(args, model, optimizer, train_loader, class_weights, device):
         #forward propagation
         outputs = model(image)
 
-        # m_tensor = calculate_multi_class_m_tensors(mask, num_classes=6, iterations=1).to(device)  #m_tensor ----> [B, 5, D, H, W]  
+        m_tensor = calculate_multi_class_m_tensors(mask, num_classes=6, iterations=1).to(device)  #m_tensor ----> [B, 5, D, H, W]  
         # logit = outputs
         
         #setting up the cost function, keeping voxel-wise loss
-        # loss_fn = nn.CrossEntropyLoss(weight=class_weights, reduction='none')
-        loss_fn = nn.CrossEntropyLoss(weight=class_weights)      #regular loss function
+        loss_fn = nn.CrossEntropyLoss(weight=class_weights, reduction='none')
+        # loss_fn = nn.CrossEntropyLoss(weight=class_weights)      #regular loss function
 
+        assert mask.shape[1] == 1, "masks should have a single channel"
         base_loss = loss_fn(outputs, mask.squeeze(1).long())  # [B, D, H, W]
 
-        # m_factor = 1 + alpha * m_tensor.max(dim=1, keepdim=True).values      # ----> [B, 1, D, H, W]
+        m_factor = 1 + alpha * m_tensor.max(dim=1, keepdim=True).values      # ----> [B, 1, D, H, W]
         
         #further loss calculation
-        # weighted_loss = (base_loss.unsqueeze(1) * m_factor).mean()     #base_loss ----> [B, 1, D, H, W]
+        weighted_loss = (base_loss.unsqueeze(1) * m_factor).mean()     #base_loss ----> [B, 1, D, H, W]
 
         #backward propgation and optimization
-        base_loss.backward()
+        weighted_loss.backward()
         optimizer.step()
 
         #record loss for the current batch
-        total_loss += base_loss.item()
+        total_loss += weighted_loss.item()
 
     #average loss calculation for the current epoch
     avg_train_loss = total_loss / len(train_loader)
@@ -160,22 +161,24 @@ def validate_model(args, model, val_loader, epoh, device):
 
             #forward propagation on the validation batch
             outputs = model(image)
-            # m_tensor = calculate_multi_class_m_tensors(mask, num_classes=6, iterations=1).to(device)  #m_tensor ----> [B, 5, D, H, W]  
+            m_tensor = calculate_multi_class_m_tensors(mask, num_classes=6, iterations=1).to(device)  #m_tensor ----> [B, 5, D, H, W]  
             # logit = outputs
 
-            #base loss calculation 
+            # base loss calculation 
             class_weights = torch.tensor([0.1, 5.0, 5.0, 5.0, 5.0, 5.0], dtype=torch.float32).to(device)
-            # loss_fn = nn.CrossEntropyLoss(weight=class_weights, reduction='none')
-            loss_fn = nn.CrossEntropyLoss(weight = class_weights)
+
+
+            #keeping voxel-wise loss
+            loss_fn = nn.CrossEntropyLoss(weight=class_weights, reduction='none')
             
             base_loss = loss_fn(outputs, mask.squeeze(1).long())  # [B, D, H, W]
 
-            # m_factor = 1 + alpha * m_tensor.max(dim=1, keepdim=True).values      # ----> [B, 1, D, H, W]
+            m_factor = 1 + alpha * m_tensor.max(dim=1, keepdim=True).values      # ----> [B, 1, D, H, W]
             
-            # #further loss calculation
-            # weighted_loss = (base_loss.unsqueeze(1) * m_factor).mean()     #base_loss ----> [B, 1, D, H, W]
+            # further loss calculation
+            weighted_loss = (base_loss.unsqueeze(1) * m_factor).mean()     #base_loss ----> [B, 1, D, H, W]
             
-            total_loss += base_loss.item()
+            total_loss += weighted_loss.item()
             batch_dices = calculate_dice_score(outputs, mask)
             dice_sums += batch_dices
 
@@ -212,7 +215,7 @@ def calculate_multi_class_m_tensors(batch_masks, num_classes=6, iterations=1):
     B, _, D, H, W = batch_masks.shape
     batch_masks = batch_masks.squeeze(1)        # ----> [B, D, H, W]
 
-    m_list = []
+    m_list = []    #list to store classes(1-5) tensors for each batch sample 
 
     for b in range(B):
         m_per_class = []
