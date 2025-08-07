@@ -16,23 +16,24 @@ def main(args):
         args (argparse.Namespace): Parsed command-line arguments.
     """
 
-    assert torch.cuda.device_count() >= 2, "Requires at least 2 GPUs"
+    # assert torch.cuda.device_count() >= 2, "Requires at least 2 GPUs"
 
-    # device = "cuda:5" if torch.cuda.is_available() else "cpu"
-    # print(f"Using device: {device}")
+    device = "cuda:1" if torch.cuda.is_available() else "cpu"
+    print(f"Using device: {device}")
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Using {torch.cuda.device_count()} GPUs")
+    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # print(f"Using {torch.cuda.device_count()} GPUs")
     
     #model intialization
     model = initialize_Unet3D_2(device, out_channels=6) 
 
     #mutli-GPU training setup, packagin the model into DataParallel
-    model = torch.nn.DataParallel(model, device_ids=[0, 1])      #using GPU 0, 1; but can later specify in command using 'CUDA_VISIBLE_DEVICES=5,6'
-    model = model.to(device)
+    # model = torch.nn.DataParallel(model, device_ids=[0, 1])      #using GPU 0, 1; but can later specify in command using 'CUDA_VISIBLE_DEVICES=5,6'
+    # model = model.to(device)
 
     #model training entrance
-    train_with_boundary_loss(model, args, device)
+    # train_with_boundary_loss(model, args, device)
+    train(model, args, device)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -51,7 +52,7 @@ if __name__ == "__main__":
         help="Batch size for training"
     )
     parser.add_argument(
-        "--epochs", type=int, default=100,
+        "--epochs", type=int, default=4000,
         help="Number of epochs for training"
     )
     parser.add_argument(

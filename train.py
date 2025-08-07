@@ -14,12 +14,14 @@ from scipy.ndimage import binary_dilation, binary_erosion    #now unused
 
 
 #intialize wandb project
-wandb.init(project='3D-Unet-Segmentation-Yuyang')
+wandb.init(project='3D-Unet-Segmentation-Yuyang-TotalSegmentator')
 
 #model training process
 def train(model, args, device):
     optimizer = optim.Adam(model.parameters(), lr=1e-4)        #learning rate adjustment
     best_val_loss = float('inf')
+    best_val_dice = float('-inf')
+    epochs_since_improvement = 0
     
     history = {
         'epoch': [],
@@ -59,12 +61,32 @@ def train(model, args, device):
             "dice 5": avg_dice_scores[4]
         })
 
-        #model parameters saving with avg_val_loss as the criterion
+        #model parameters saving with avg_val_loss as the criterion 1
         if avg_val_loss < best_val_loss:
             best_val_loss = avg_val_loss
-            torch.save(model.state_dict(), "best_Unet_3D_Yuyang_15th_version.pth")      
-            print(f"Saved new best model✅ (15th version🤡)! At epoch {epoch+1} with avg_val_loss: {avg_val_loss:.4f}")
+            torch.save(model.state_dict(), "Unet_3D_Yuyang_TS_Dataset_final_best_val_loss.pth")      
+            print(f"Saved new best model✅ (trained on TotalSegmentator dataset)! At epoch {epoch+1} with avg_val_loss: {avg_val_loss:.4f}")
         
+        #model parameters saving with mean_dice_score_across_classes as the criterion 2
+        #use the dice score as the early stopping criterion
+        if mean_dice_score_across_classes > best_val_dice:
+            epochs_since_improvement = 0      #reset the counter
+            best_val_dice = mean_dice_score_across_classes
+            torch.save(model.state_dict(), "Unet_3D_Yuyang_TS_Dataset_final_best_val_dice.pth")      
+            print(f"Saved new best model✅ (trained on TotalSegmentator dataset)! At epoch {epoch+1} with mean dice score: {mean_dice_score_across_classes:.4f}")
+        else:
+            epochs_since_improvement += 1  
+
+        #model parameters saving with the epoch number as the criterion 3
+        torch.save({
+            'epoch': epoch+1,
+            'model_state_dict': model.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict(),
+            'train_loss': train_loss
+        },
+        f"checkpoint_model_saving.pth")
+
+
         #recording the training history
         history['epoch'].append(epoch + 1)
         history['train_loss'].append(train_loss)
@@ -73,6 +95,13 @@ def train(model, args, device):
         #save each class dice
         for i, score in enumerate(avg_dice_scores):
             history['dice_scores'][str(i+1)].append(score.item())
+
+
+        #early stopping
+        if epochs_since_improvement == 10:
+            print('Early stopping triggered. No improvement in dice score for 10 epochs.')
+            break
+            
 
     
     # write training logs to csv
@@ -93,7 +122,7 @@ def train(model, args, device):
         ]
         rows.append(row)
 
-    csv_path = "/home/yxing/training_data/Unet_training_logs_9.csv"     
+    csv_path = "/home/yxing/training_data/Unet_training_logs_TotalSegmentator_training_set_final_version.csv"     
     with open(csv_path, 'w', newline='') as f:
         writer = csv.writer(f)
         writer.writerow(header)
@@ -192,14 +221,19 @@ def validate_model(args, model, val_loader, epoh, device):
 #helper function to calculate dice score (for each batch in the validation set-----the dice score for each type of segmentation from class 1-5)
 def calculate_dice_score(pred, mask, smooth=1e-8):
     pred = torch.argmax(pred, dim=1)    #[B, D, H, W]   returning the index of the maximum value along the channel dimension
+    # print(f"pred shape: {pred.shape}, mask's shape {mask.shape}")  #debugging output
     class_dice_scores = []
 
+    mask = mask.squeeze(1)  #[B, 1, D, H, W] ----> [B, D, H, W]
+    # print(f"pred shape after squeeze: {pred.shape}, mask's shape after squeeze {mask.shape}")  #debugging output
     for cls in range(1, 6):    #skip the background class
         pred_cls = (pred == cls).float()    #[B, D, H, W]
         mask_cls = (mask == cls).float()      #[B, D, H, W]
-        intersection = (pred_cls * mask_cls).sum()     #scalar value
-        union = pred_cls.sum() + mask_cls.sum()    #scalar value
-        dice_score = (2. * intersection + smooth) / (union + smooth)     #scalar value
+        intersection = (pred_cls * mask_cls).sum(dim=(1, 2, 3))    
+        union = pred_cls.sum(dim=(1, 2, 3)) + mask_cls.sum(dim=(1, 2, 3))    
+        dice_score = (2. * intersection + smooth) / (union + smooth)   
+
+        dice_score = dice_score.mean()    #mean dice score for the current class across the batch
         class_dice_scores.append(dice_score)
 
     return torch.stack(class_dice_scores)          #shape [5]

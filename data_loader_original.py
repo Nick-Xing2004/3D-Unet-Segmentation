@@ -22,10 +22,10 @@ class HipDataset(Dataset):
         sample_dir = os.path.join(self.root_dir, self.sample_dirs[idx])    #sample dir path generation
 
         #sample 3d image loading
-        image_path = os.path.join(sample_dir, f"{self.sample_dirs[idx]}.nii.gz")
+        image_path = os.path.join(sample_dir, f"ct.nii.gz")
         image = nib.load(image_path).get_fdata() 
         #sample mask loading
-        mask_path = os.path.join(sample_dir, f"{self.sample_dirs[idx]}_bone_mask-1.nii.gz")
+        mask_path = os.path.join(sample_dir, f"{self.sample_dirs[idx]}_mask-1.nii.gz")
         mask = nib.load(mask_path).get_fdata()
 
         # Permute to [D, H, W]
@@ -36,19 +36,19 @@ class HipDataset(Dataset):
         image_tensor = torch.from_numpy(image).float().unsqueeze(0) # add channel dimension    #[1, D, H, W]
         mask_tensor = torch.from_numpy(mask).float().unsqueeze(0) # add channel dimension    #[1, D, H, W]
 
-        #resize the mask to match the image size in 'depth' dimension
-        image_depth = image_tensor.shape[1]
-        mask_depth = mask_tensor.shape[1]
-        if image_depth != mask_depth:
-            pad_size = image_depth - mask_depth
-            padding = torch.zeros((1, pad_size, mask_tensor.shape[2], mask_tensor.shape[3]), dtype=mask_tensor.dtype)
-            #padding the mask tensor
-            mask_tensor = torch.cat((mask_tensor, padding), dim=1)
+        # #resize the mask to match the image size in 'depth' dimension
+        # image_depth = image_tensor.shape[1]
+        # mask_depth = mask_tensor.shape[1]
+        # if image_depth != mask_depth:
+        #     pad_size = image_depth - mask_depth
+        #     padding = torch.zeros((1, pad_size, mask_tensor.shape[2], mask_tensor.shape[3]), dtype=mask_tensor.dtype)
+        #     #padding the mask tensor
+        #     mask_tensor = torch.cat((mask_tensor, padding), dim=1)
         
-        #image and mask tensor cropping
-        target_depth = 312  #desired depth for cropping or padding         #data set max depths: 312 
-        image_tensor = crop_or_pad_depth(image_tensor, target_depth)
-        mask_tensor = crop_or_pad_depth(mask_tensor, target_depth)
+        # #image and mask tensor cropping
+        # target_depth = 312  #desired depth for cropping or padding         #data set max depths: 312 
+        # image_tensor = crop_or_pad_depth(image_tensor, target_depth)
+        # mask_tensor = crop_or_pad_depth(mask_tensor, target_depth)
 
         #downsampling process before training
         image_tensor = F.interpolate(image_tensor.unsqueeze(0), size=(160, 256, 256),               #will then try set to 160 as depth first, now using 192
@@ -92,7 +92,7 @@ def dataloader_original(Args):
         # tio.RandomElasticDeformation(p=0.2)
     ])
 
-    root_dir = "/banana/yuyang/2_CTPEL_nii"
+    root_dir = "/banana/yuyang/Totalsegmentator_dataset_v201_filtered"      #training model on Totalsegmentator dataset
     dataset = HipDataset(root_dir)
 
     # train & validation split

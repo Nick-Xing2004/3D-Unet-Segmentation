@@ -15,19 +15,23 @@ def model_performance_QA():
         
     #model intialization & param loading
     model = initialize_Unet3D_2(device)
-    model.load_state_dict(torch.load("Unet_3D_Yuyang_TS_Dataset_final_best_val_dice.pth"))
+    model.load_state_dict(torch.load("Unet_3D_Yuyang_TS_Dataset_updated_version.pth"))
     model.eval()
 
     save_dir = "/banana/yuyang/SPIE_NMDID_Self_Unet_prediction"           #the dir that all pred_nii will be stored
     os.makedirs(save_dir, exist_ok=True)
 
     root_dir = "/banana/yuyang/SPIE_NMDID"                #the dir containing QA samples
-    sample_dirs = [d for d in os.listdir(root_dir) if os.path.isdir(os.path.join(root_dir, d))]
+    # sample_dirs = [d for d in os.listdir(root_dir) if os.path.isdir(os.path.join(root_dir, d))]
+    root_dir_gt = "/banana/yuyang/SPIE_NMDID_mask"
+    
 
-    for QA_dir in sample_dirs:
-        dir_path = os.path.join(root_dir, QA_dir)
-        image_path = os.path.join(dir_path, f"{QA_dir}.nii.gz")
+    for sample_name in os.listdir(root_dir):
+        # dir_path = os.path.join(root_dir, QA_dir)
+        image_path = os.path.join(root_dir, sample_name)
         # gt_mask_path = os.path.join(dir_path, f"{QA_dir}_bone_mask-1.nii.gz")
+        case_id = sample_name.split("_")[0]
+        gt_mask_path = os.path.join(root_dir_gt, f"{case_id}_mask_1.nii.gz")
         image_tensor, affine, header, img_orginal_shape = load_nifti_as_tensor(image_path)
         image_tensor = image_tensor.to(device).unsqueeze(0)   #[1, 1, D, H, W]  --->  [1, 1, 160, 256, 256]
 
@@ -37,12 +41,17 @@ def model_performance_QA():
             pred = torch.argmax(outputs, dim=1, keepdim=True)   #[1, C, D, H, W]    ----->  [1(B), 1, D, H, W]  ---->  [1, 1, 160, 256, 256]
 
         #upsampling after argMax:
-        pred_up = F.interpolate(pred.float(), size=(img_orginal_shape[0], img_orginal_shape[1], img_orginal_shape[2]), mode='nearest')  #[1, 1, 160, 256, 256]   ----->  [1, 1, D, H, W]   
+        pred_up = F.interpolate(pred.float(), size=(img_orginal_shape[0], img_orginal_shape[1], img_orginal_shape[2]), mode='nearest')  #[1, 1, 160, 256, 256]   ----->  [1, 1, D, H, W]  
+
+         
         
         #save as nifti
-        output_path = os.path.join(save_dir, f"{QA_dir}_self_Unet_mask.nii.gz")
+        output_path = os.path.join(save_dir, f"{case_id}_self_Unet_mask.nii.gz")
         save_prediction(output_path, affine, header, pred_up, gt_mask_path)
-        print(f"Saved prediction for {QA_dir}✅! -> {output_path}")
+        print(f"Saved prediction for {case_id}✅! -> {output_path}")
+        
+        print(f"image's affine{nib.load(image_path).affine}")
+        print(f"prediction's affine{nib.load(output_path).affine}")
 
         
             
@@ -91,6 +100,7 @@ def save_prediction(output_path, affine, header, pred_up, gt_mask_path):
     print(f"ground truth mask's shape: {gt_mask_nib.get_fdata().shape}")     # check the original mask's shape to verify
 
     pred_np = pred_up.squeeze().cpu().numpy().astype(np.uint8)
+    # pred_np = np.flip(pred_np, axis=2)         # 沿W轴（左右）翻转
     restored_np = pred_np.transpose(1, 2, 0)
     print(f"pred_np's shape: {restored_np.shape} (H, W, D)")      # check the shape of the restored mask to double check
     nib.save(nib.Nifti1Image(restored_np, affine=affine, header=header), output_path)
